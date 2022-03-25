@@ -1,6 +1,8 @@
 package genh
 
-import "sync"
+import (
+	"sync"
+)
 
 func NewLMap[K comparable, V any](sz int) *LMap[K, V] {
 	return &LMap[K, V]{m: make(map[K]V, sz)}
@@ -60,6 +62,37 @@ func (lm *LMap[K, V]) Get(k K) (v V) {
 	v = lm.m[k]
 	lm.mux.RUnlock()
 	return
+}
+
+func (lm *LMap[K, V]) GetOrCreate(k K, fn func() V) V {
+	lm.mux.RLock()
+	v, ok := lm.m[k]
+	lm.mux.RUnlock()
+
+	if ok {
+		return v
+	}
+
+	var nv V
+	if fn != nil {
+		// create outside lock in case it's heavy, there's a chance it won't be used
+		nv = fn()
+	}
+
+	lm.mux.Lock()
+	defer lm.mux.Unlock()
+
+	if v, ok = lm.m[k]; ok { // race check
+		return v
+	}
+
+	if lm.m == nil {
+		lm.m = make(map[K]V)
+	}
+
+	lm.m[k] = nv
+
+	return nv
 }
 
 func (lm *LMap[K, V]) ForEach(fn func(k K, v V) bool) {

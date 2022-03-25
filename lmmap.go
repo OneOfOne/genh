@@ -92,6 +92,41 @@ func (lm *LMultiMap[K1, K2, V]) Get(k1 K1, k2 K2) (v V) {
 	return
 }
 
+func (lm *LMultiMap[K1, K2, V]) GetOrCreate(k1 K1, k2 K2, fn func() V) V {
+	lm.mux.RLock()
+	v, ok := lm.m[k1][k2]
+	lm.mux.RUnlock()
+	if ok {
+		return v
+	}
+
+	var nv V
+	if fn != nil {
+		// create outside lock in case it's heavy, there's a chance it won't be used
+		nv = fn()
+	}
+
+	lm.mux.Lock()
+	defer lm.mux.Unlock()
+
+	if v, ok = lm.m[k1][k2]; ok { // race check
+		return v
+	}
+
+	if lm.m == nil {
+		lm.m = make(map[K1]map[K2]V)
+	}
+
+	m := lm.m[k1]
+	if m == nil {
+		m = make(map[K2]V)
+		lm.m[k1] = m
+	}
+
+	m[k2] = nv
+	return nv
+}
+
 func (lm *LMultiMap[K1, K2, V]) GetChild(k1 K1, copy bool) map[K2]V {
 	lm.mux.RLock()
 	defer lm.mux.RUnlock()
