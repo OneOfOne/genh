@@ -62,6 +62,9 @@ func MapClear[M ~map[K]V, K comparable, V any](m M) {
 // Clone returns a copy of m.  This is a shallow clone:
 // the new keys and values are set using ordinary assignment.
 func MapClone[M ~map[K]V, K comparable, V any](m M) M {
+	if m == nil {
+		return nil
+	}
 	r := make(M, len(m))
 	for k, v := range m {
 		r[k] = v
