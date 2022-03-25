@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"runtime"
 	"sync/atomic"
 )
 
@@ -37,6 +38,7 @@ func (v *AtomicFloat64) Add(val float64) float64 {
 		if v.CompareAndSwap(old, new) {
 			return new
 		}
+		runtime.Gosched()
 	}
 }
 
