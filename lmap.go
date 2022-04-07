@@ -1,6 +1,7 @@
 package genh
 
 import (
+	"encoding/json"
 	"sync"
 )
 
@@ -24,6 +25,13 @@ func (lm *LMap[K, V]) Set(k K, v V) {
 	}
 	lm.m[k] = v
 	lm.mux.Unlock()
+}
+
+func (lm *LMap[K, V]) Update(k K, fn func(V) V) {
+	lm.mux.Lock()
+	defer lm.mux.Unlock()
+
+	lm.m[k] = fn(lm.m[k])
 }
 
 func (lm *LMap[K, V]) Swap(k K, v V) V {
@@ -111,4 +119,16 @@ func (lm *LMap[K, V]) Clear() {
 		delete(lm.m, k)
 	}
 	lm.mux.Unlock()
+}
+
+func (lm *LMap[K, V]) MarshalJSON() ([]byte, error) {
+	lm.mux.RLock()
+	defer lm.mux.RUnlock()
+	return json.Marshal(lm.m)
+}
+
+func (lm *LMap[K, V]) UnmarshalJSON(p []byte) error {
+	lm.mux.Lock()
+	defer lm.mux.Unlock()
+	return json.Unmarshal(p, &lm.m)
 }

@@ -1,6 +1,9 @@
 package genh
 
-import "sync"
+import (
+	"encoding/json"
+	"sync"
+)
 
 func NewLMultiMap[K1, K2 comparable, V any](sz int) *LMultiMap[K1, K2, V] {
 	return &LMultiMap[K1, K2, V]{m: make(map[K1]map[K2]V, sz)}
@@ -175,4 +178,16 @@ func (lm *LMultiMap[K1, K2, V]) ClearChild(k1 K1) {
 	lm.mux.Lock()
 	MapClear(lm.m[k1])
 	lm.mux.Unlock()
+}
+
+func (lm *LMultiMap[K1, K2, V]) MarshalJSON() ([]byte, error) {
+	lm.mux.RLock()
+	defer lm.mux.RUnlock()
+	return json.Marshal(lm.m)
+}
+
+func (lm *LMultiMap[K1, K2, V]) UnmarshalJSON(p []byte) error {
+	lm.mux.Lock()
+	defer lm.mux.Unlock()
+	return json.Unmarshal(p, &lm.m)
 }
