@@ -223,7 +223,7 @@ func TestBinarySearch(t *testing.T) {
 			}
 
 			{
-				pos, found := BinarySearchFunc(tt.data, tt.target, strings.Compare)
+				pos, found := BinarySearchFunc(tt.data, func(v string) int { return strings.Compare(v, tt.target) })
 				if pos != tt.wantPos || found != tt.wantFound {
 					t.Errorf("BinarySearchFunc got (%v, %v), want (%v, %v)", pos, found, tt.wantPos, tt.wantFound)
 				}
@@ -257,7 +257,7 @@ func TestBinarySearchInts(t *testing.T) {
 				cmp := func(a, b int) int {
 					return a - b
 				}
-				pos, found := BinarySearchFunc(data, tt.target, cmp)
+				pos, found := BinarySearchFunc(data, func(v int) int { return cmp(v, tt.target) })
 				if pos != tt.wantPos || found != tt.wantFound {
 					t.Errorf("BinarySearchFunc got (%v, %v), want (%v, %v)", pos, found, tt.wantPos, tt.wantFound)
 				}

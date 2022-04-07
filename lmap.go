@@ -64,7 +64,7 @@ func (lm *LMap[K, V]) Get(k K) (v V) {
 	return
 }
 
-func (lm *LMap[K, V]) GetOrCreate(k K, fn func() V) V {
+func (lm *LMap[K, V]) GetOrMake(k K, fn func() V) V {
 	lm.mux.RLock()
 	v, ok := lm.m[k]
 	lm.mux.RUnlock()

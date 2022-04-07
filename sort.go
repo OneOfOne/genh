@@ -52,7 +52,7 @@ func BinarySearch[E Ordered](x []E, target E) (int, bool) {
 	// search returns the leftmost position where f returns true, or len(x) if f
 	// returns false for all x. This is the insertion position for target in x,
 	// and could point to an element that's either == target or not.
-	pos := search(len(x), func(i int) bool { return x[i] >= target })
+	pos := Search(len(x), func(i int) bool { return x[i] >= target })
 	if pos >= len(x) || x[pos] != target {
 		return pos, false
 	} else {
@@ -65,9 +65,9 @@ func BinarySearch[E Ordered](x []E, target E) (int, bool) {
 // defined by cmp. cmp(a, b) is expected to return an integer comparing the two
 // parameters: 0 if a == b, a negative number if a < b and a positive number if
 // a > b.
-func BinarySearchFunc[E any](x []E, target E, cmp func(E, E) int) (int, bool) {
-	pos := search(len(x), func(i int) bool { return cmp(x[i], target) >= 0 })
-	if pos >= len(x) || cmp(x[pos], target) != 0 {
+func BinarySearchFunc[E any](x []E, cmp func(E) int) (int, bool) {
+	pos := Search(len(x), func(i int) bool { return cmp(x[i]) >= 0 })
+	if pos >= len(x) || cmp(x[pos]) != 0 {
 		return pos, false
 	} else {
 		return pos, true
@@ -84,14 +84,14 @@ func maxDepth(n int) int {
 	return depth * 2
 }
 
-func search(n int, f func(int) bool) int {
+func Search(ln int, less func(int) bool) int {
 	// Define f(-1) == false and f(n) == true.
 	// Invariant: f(i-1) == false, f(j) == true.
-	i, j := 0, n
+	i, j := 0, ln
 	for i < j {
 		h := int(uint(i+j) >> 1) // avoid overflow when computing h
 		// i ≤ h < j
-		if !f(h) {
+		if !less(h) {
 			i = h + 1 // preserves f(i-1) == false
 		} else {
 			j = h // preserves f(j) == true
