@@ -88,6 +88,16 @@ func (lm *LMultiMap[K1, K2, V]) ValuesChild(k1 K1) (values []V) {
 	return
 }
 
+func (lm *LMultiMap[K1, K2, V]) Clone() (m map[K1]map[K2]V) {
+	lm.mux.RLock()
+	m = make(map[K1]map[K2]V, len(lm.m))
+	for k, v := range lm.m {
+		m[k] = MapClone(v)
+	}
+	lm.mux.RUnlock()
+	return
+}
+
 func (lm *LMultiMap[K1, K2, V]) Get(k1 K1, k2 K2) (v V) {
 	lm.mux.RLock()
 	v = lm.m[k1][k2]

@@ -51,16 +51,23 @@ func (lm *LMap[K, V]) Delete(k K) {
 	lm.mux.Unlock()
 }
 
-func (lm *LMap[K1, V]) Keys() (keys []K1) {
+func (lm *LMap[K, V]) Keys() (keys []K) {
 	lm.mux.RLock()
 	keys = MapKeys(lm.m)
 	lm.mux.RUnlock()
 	return
 }
 
-func (lm *LMap[K1, V]) Values() (values []V) {
+func (lm *LMap[K, V]) Values() (values []V) {
 	lm.mux.RLock()
 	values = MapValues(lm.m)
+	lm.mux.RUnlock()
+	return
+}
+
+func (lm *LMap[K, V]) Clone() (m map[K]V) {
+	lm.mux.RLock()
+	m = MapClone(lm.m)
 	lm.mux.RUnlock()
 	return
 }
