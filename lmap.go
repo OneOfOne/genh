@@ -121,6 +121,14 @@ func (lm *LMap[K, V]) Clear() {
 	lm.mux.Unlock()
 }
 
+func (lm *LMap[K, V]) SetMap(m map[K]V) (old map[K]V) {
+	lm.mux.Lock()
+	old = lm.m
+	lm.m = m
+	lm.mux.Unlock()
+	return
+}
+
 func (lm *LMap[K, V]) MarshalJSON() ([]byte, error) {
 	lm.mux.RLock()
 	defer lm.mux.RUnlock()
