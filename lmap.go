@@ -30,7 +30,9 @@ func (lm *LMap[K, V]) Set(k K, v V) {
 func (lm *LMap[K, V]) Update(k K, fn func(V) V) {
 	lm.mux.Lock()
 	defer lm.mux.Unlock()
-
+	if lm.m == nil {
+		lm.m = make(map[K]V)
+	}
 	lm.m[k] = fn(lm.m[k])
 }
 
