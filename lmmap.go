@@ -30,6 +30,12 @@ func (lm *LMultiMap[K1, K2, V]) Set(k1 K1, k2 K2, v V) {
 	lm.mux.Unlock()
 }
 
+func (lm *LMultiMap[K1, K2, V]) SetChild(k1 K1, v map[K2]V) {
+	lm.mux.Lock()
+	lm.m[k1] = v
+	lm.mux.Unlock()
+}
+
 func (lm *LMultiMap[K1, K2, V]) Update(k1 K1, fn func(m map[K2]V) map[K2]V) {
 	lm.mux.Lock()
 	defer lm.mux.Unlock()
