@@ -10,145 +10,151 @@ type LSlice[T any] struct {
 	v   []T
 }
 
-func (s *LSlice[T]) Update(fn func(v []T) []T) {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-	s.v = fn(s.v)
+func (ls *LSlice[T]) Update(fn func(v []T) []T) {
+	ls.mux.Lock()
+	defer ls.mux.Unlock()
+	ls.v = fn(ls.v)
 }
 
-func (s *LSlice[T]) Append(vs ...T) {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-	s.v = append(s.v, vs...)
+func (ls *LSlice[T]) Append(vs ...T) {
+	ls.mux.Lock()
+	defer ls.mux.Unlock()
+	ls.v = append(ls.v, vs...)
 }
 
-func (s *LSlice[T]) Set(i int, v T) {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-	s.v[i] = v
+func (ls *LSlice[T]) Set(i int, v T) {
+	ls.mux.Lock()
+	defer ls.mux.Unlock()
+	ls.v[i] = v
 }
 
-func (s *LSlice[T]) Insert(i int, vs ...T) {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-	s.v = Insert(s.v, i, vs...)
+func (ls *LSlice[T]) Insert(i int, vs ...T) {
+	ls.mux.Lock()
+	defer ls.mux.Unlock()
+	ls.v = Insert(ls.v, i, vs...)
 }
 
-func (s *LSlice[T]) Delete(i, j int) {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-	s.v = Delete(s.v, i, j)
+func (ls *LSlice[T]) Delete(i, j int) {
+	ls.mux.Lock()
+	defer ls.mux.Unlock()
+	ls.v = Delete(ls.v, i, j)
 }
 
-func (s *LSlice[T]) Filter(fn func(T) bool, inplace bool) *LSlice[T] {
+func (ls *LSlice[T]) Filter(fn func(T) bool, inplace bool) *LSlice[T] {
 	if inplace {
-		s.mux.Lock()
-		defer s.mux.Unlock()
-		s.v = Filter(s.v, fn, true)
-		return s
+		ls.mux.Lock()
+		defer ls.mux.Unlock()
+		ls.v = Filter(ls.v, fn, true)
+		return ls
 	}
-	s.mux.RLock()
-	defer s.mux.RLock()
-	return &LSlice[T]{v: Filter(s.v, fn, false)}
+	ls.mux.RLock()
+	defer ls.mux.RLock()
+	return &LSlice[T]{v: Filter(ls.v, fn, false)}
 }
 
-func (s *LSlice[T]) Map(fn func(T) T, inplace bool) *LSlice[T] {
+func (ls *LSlice[T]) Map(fn func(T) T, inplace bool) *LSlice[T] {
 	if inplace {
-		s.mux.Lock()
-		defer s.mux.Unlock()
-		s.v = SliceMapSameType(s.v, fn, true)
-		return s
+		ls.mux.Lock()
+		defer ls.mux.Unlock()
+		ls.v = SliceMapSameType(ls.v, fn, true)
+		return ls
 	}
-	s.mux.RLock()
-	defer s.mux.RLock()
-	return &LSlice[T]{v: SliceMapSameType(s.v, fn, false)}
+	ls.mux.RLock()
+	defer ls.mux.RLock()
+	return &LSlice[T]{v: SliceMapSameType(ls.v, fn, false)}
 }
 
-func (s *LSlice[T]) Swap(i int, v T) (old T) {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-	old, s.v[i] = s.v[i], v
+func (ls *LSlice[T]) Swap(i int, v T) (old T) {
+	ls.mux.Lock()
+	defer ls.mux.Unlock()
+	old, ls.v[i] = ls.v[i], v
 	return
 }
 
-func (s *LSlice[T]) SetSlice(v []T) {
-	s.mux.Lock()
-	s.v = v
-	s.mux.Unlock()
+func (ls *LSlice[T]) SetSlice(v []T) {
+	ls.mux.Lock()
+	ls.v = v
+	ls.mux.Unlock()
 }
 
-func (s *LSlice[T]) Sort(lessFn func(a, b T) bool) {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-	SortFunc(s.v, lessFn)
+func (ls *LSlice[T]) Sort(lessFn func(a, b T) bool) {
+	ls.mux.Lock()
+	defer ls.mux.Unlock()
+	SortFunc(ls.v, lessFn)
 }
 
-func (s *LSlice[T]) Grow(sz int) {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-	s.v = Grow(s.v, sz)
+func (ls *LSlice[T]) Grow(sz int) {
+	ls.mux.Lock()
+	defer ls.mux.Unlock()
+	ls.v = Grow(ls.v, sz)
 }
 
-func (s *LSlice[T]) ClipTo(len_, cap_ int) {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-	s.v = s.v[:len_:cap_]
+func (ls *LSlice[T]) ClipTo(len_, cap_ int) {
+	ls.mux.Lock()
+	defer ls.mux.Unlock()
+	ls.v = ls.v[:len_:cap_]
 }
 
-func (s *LSlice[T]) Clip() {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-	s.v = Clip(s.v)
+func (ls *LSlice[T]) Clip() {
+	ls.mux.Lock()
+	defer ls.mux.Unlock()
+	ls.v = Clip(ls.v)
 }
 
-func (s *LSlice[T]) Len() int {
-	s.mux.RLock()
-	defer s.mux.RLock()
-	return len(s.v)
+func (ls *LSlice[T]) Len() int {
+	ls.mux.RLock()
+	defer ls.mux.RLock()
+	return len(ls.v)
 }
 
-func (s *LSlice[T]) Cap() int {
-	s.mux.RLock()
-	defer s.mux.RLock()
-	return cap(s.v)
+func (ls *LSlice[T]) Cap() int {
+	ls.mux.RLock()
+	defer ls.mux.RLock()
+	return cap(ls.v)
 }
 
-func (s *LSlice[T]) Get(i int) T {
-	s.mux.RLock()
-	defer s.mux.RLock()
-	return s.v[i]
+func (ls *LSlice[T]) Get(i int) T {
+	ls.mux.RLock()
+	defer ls.mux.RLock()
+	return ls.v[i]
 }
 
-func (s *LSlice[T]) ForEach(fn func(i int, v T) bool) {
-	s.mux.RLock()
-	defer s.mux.RLock()
-	for i, v := range s.v {
+func (ls *LSlice[T]) ForEach(fn func(i int, v T) bool) {
+	ls.mux.RLock()
+	defer ls.mux.RLock()
+	for i, v := range ls.v {
 		if !fn(i, v) {
 			return
 		}
 	}
 }
 
-func (s *LSlice[T]) Search(cmpFn func(v T) int) (v T, found bool) {
+func (ls *LSlice[T]) Search(cmpFn func(v T) int) (v T, found bool) {
 	var i int
-	s.mux.RLock()
-	defer s.mux.RLock()
-	if i, found = BinarySearchFunc(s.v, cmpFn); found {
-		v = s.v[i]
+	ls.mux.RLock()
+	defer ls.mux.RLock()
+	if i, found = BinarySearchFunc(ls.v, cmpFn); found {
+		v = ls.v[i]
 	}
 	return
 }
 
-func (s *LSlice[T]) Clone() []T {
-	s.mux.RLock()
-	defer s.mux.RLock()
-	return Clone(s.v)
+func (ls *LSlice[T]) Clone() []T {
+	ls.mux.RLock()
+	defer ls.mux.RLock()
+	return Clone(ls.v)
 }
 
-func (s *LSlice[T]) LClone() *LSlice[T] {
-	s.mux.RLock()
-	defer s.mux.RLock()
-	return &LSlice[T]{v: Clone(s.v)}
+func (ls *LSlice[T]) LClone() *LSlice[T] {
+	ls.mux.RLock()
+	defer ls.mux.RLock()
+	return &LSlice[T]{v: Clone(ls.v)}
+}
+
+func (ls *LSlice[T]) Raw() []T {
+	ls.mux.RLock()
+	defer ls.mux.RUnlock()
+	return ls.v
 }
 
 func (lm *LSlice[T]) MarshalJSON() ([]byte, error) {

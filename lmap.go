@@ -145,6 +145,12 @@ func (lm *LMap[K, V]) Len() (v int) {
 	return
 }
 
+func (lm *LMap[K, V]) Raw() map[K]V {
+	lm.mux.RLock()
+	defer lm.mux.RUnlock()
+	return lm.m
+}
+
 func (lm *LMap[K, V]) MarshalJSON() ([]byte, error) {
 	lm.mux.RLock()
 	defer lm.mux.RUnlock()

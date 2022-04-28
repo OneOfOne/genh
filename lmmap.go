@@ -216,6 +216,12 @@ func (lm *LMultiMap[K1, K2, V]) LenChild(k K1) (v int) {
 	return
 }
 
+func (lm *LMultiMap[K1, K2, V]) Raw() map[K1]map[K2]V {
+	lm.mux.RLock()
+	defer lm.mux.RUnlock()
+	return lm.m
+}
+
 func (lm *LMultiMap[K1, K2, V]) MarshalJSON() ([]byte, error) {
 	lm.mux.RLock()
 	defer lm.mux.RUnlock()
