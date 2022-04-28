@@ -166,14 +166,12 @@ func (lm *LMultiMap[K1, K2, V]) ForEach(fn func(k1 K1, m map[K2]V) bool, rw bool
 	}
 }
 
-func (lm *LMultiMap[K1, K2, V]) ForEachChild(fn func(k1 K1, k2 K2, v V) bool) {
+func (lm *LMultiMap[K1, K2, V]) ForEachChild(k1 K1, fn func(k2 K2, v V) bool) {
 	lm.mux.RLock()
 	defer lm.mux.RUnlock()
-	for k1, m := range lm.m {
-		for k2, v := range m {
-			if !fn(k1, k2, v) {
-				return
-			}
+	for k2, v := range lm.m[k1] {
+		if !fn(k2, v) {
+			return
 		}
 	}
 }
