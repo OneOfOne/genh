@@ -105,7 +105,7 @@ func (lm *LMultiMap[K1, K2, V]) Get(k1 K1, k2 K2) (v V) {
 	return
 }
 
-func (lm *LMultiMap[K1, K2, V]) GetOrMake(k1 K1, k2 K2, fn func() V) V {
+func (lm *LMultiMap[K1, K2, V]) MustGet(k1 K1, k2 K2, fn func() V) V {
 	lm.mux.RLock()
 	v, ok := lm.m[k1][k2]
 	lm.mux.RUnlock()
