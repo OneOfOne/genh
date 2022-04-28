@@ -36,6 +36,14 @@ func (lm *LMultiMap[K1, K2, V]) SetChild(k1 K1, v map[K2]V) {
 	lm.mux.Unlock()
 }
 
+func (lm *LMultiMap[K1, K2, V]) SetMap(m map[K1]map[K2]V) (old map[K1]map[K2]V) {
+	lm.mux.Lock()
+	old = lm.m
+	lm.m = m
+	lm.mux.Unlock()
+	return
+}
+
 func (lm *LMultiMap[K1, K2, V]) Update(k1 K1, fn func(m map[K2]V) map[K2]V) {
 	lm.mux.Lock()
 	defer lm.mux.Unlock()
@@ -146,6 +154,18 @@ func (lm *LMultiMap[K1, K2, V]) MustGet(k1 K1, k2 K2, fn func() V) V {
 	return nv
 }
 
+func (lm *LMultiMap[K1, K2, V]) Read(fn func(m map[K1]map[K2]V)) {
+	lm.mux.RLock()
+	fn(lm.m)
+	lm.mux.RUnlock()
+}
+
+func (lm *LMultiMap[K1, K2, V]) ReadChild(k K1, fn func(m map[K2]V)) {
+	lm.mux.RLock()
+	fn(lm.m[k])
+	lm.mux.RUnlock()
+}
+
 func (lm *LMultiMap[K1, K2, V]) GetChild(k1 K1, copy bool) map[K2]V {
 	lm.mux.RLock()
 	defer lm.mux.RUnlock()
@@ -192,14 +212,6 @@ func (lm *LMultiMap[K1, K2, V]) ClearChild(k1 K1) {
 	lm.mux.Lock()
 	MapClear(lm.m[k1])
 	lm.mux.Unlock()
-}
-
-func (lm *LMultiMap[K1, K2, V]) SetMap(m map[K1]map[K2]V) (old map[K1]map[K2]V) {
-	lm.mux.Lock()
-	old = lm.m
-	lm.m = m
-	lm.mux.Unlock()
-	return
 }
 
 func (lm *LMultiMap[K1, K2, V]) Len() (v int) {

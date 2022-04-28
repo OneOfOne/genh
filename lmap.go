@@ -74,6 +74,12 @@ func (lm *LMap[K, V]) Clone() (m map[K]V) {
 	return
 }
 
+func (lm *LMap[K, V]) Read(fn func(m map[K]V)) {
+	lm.mux.RLock()
+	fn(lm.m)
+	lm.mux.RUnlock()
+}
+
 func (lm *LMap[K, V]) Get(k K) (v V) {
 	lm.mux.RLock()
 	v = lm.m[k]
