@@ -40,6 +40,30 @@ func (s *LSlice[T]) Delete(i, j int) {
 	s.v = Delete(s.v, i, j)
 }
 
+func (s *LSlice[T]) Filter(fn func(T) bool, inplace bool) *LSlice[T] {
+	if inplace {
+		s.mux.Lock()
+		defer s.mux.Unlock()
+		s.v = Filter(s.v, fn, true)
+		return s
+	}
+	s.mux.RLock()
+	defer s.mux.RLock()
+	return &LSlice[T]{v: Filter(s.v, fn, false)}
+}
+
+func (s *LSlice[T]) Map(fn func(T) T, inplace bool) *LSlice[T] {
+	if inplace {
+		s.mux.Lock()
+		defer s.mux.Unlock()
+		s.v = SliceMapSameType(s.v, fn, true)
+		return s
+	}
+	s.mux.RLock()
+	defer s.mux.RLock()
+	return &LSlice[T]{v: SliceMapSameType(s.v, fn, false)}
+}
+
 func (s *LSlice[T]) Swap(i int, v T) (old T) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
