@@ -32,6 +32,9 @@ func (lm *LMultiMap[K1, K2, V]) Set(k1 K1, k2 K2, v V) {
 
 func (lm *LMultiMap[K1, K2, V]) SetChild(k1 K1, v map[K2]V) {
 	lm.mux.Lock()
+	if lm.m == nil {
+		lm.m = make(map[K1]map[K2]V)
+	}
 	lm.m[k1] = v
 	lm.mux.Unlock()
 }
