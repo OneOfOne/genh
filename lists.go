@@ -17,6 +17,13 @@ var (
 	_ msgpack.CustomDecoder      = (*List[any])(nil)
 )
 
+type (
+	StringList  = List[string]
+	Int64List   = List[int64]
+	Uint64List  = List[uint64]
+	Float64List = List[float64]
+)
+
 type lnode[T any] struct {
 	v          T
 	next, prev *lnode[T]
