@@ -198,7 +198,7 @@ func (l *List[T]) SlicePtr(rev bool) (out []*T) {
 	return
 }
 
-func (l *List[T]) MarshalJSON() ([]byte, error) {
+func (l List[T]) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteByte('[')
 	enc := json.NewEncoder(&buf)
