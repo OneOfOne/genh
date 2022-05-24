@@ -8,16 +8,23 @@ import (
 )
 
 type cloneStruct struct {
-	Y      map[string]any
-	Ptr    *int
-	NilPtr *int
-	S      string
-	X      []int
-	A      [5]uint64
+	Y map[string]any
+
+	Ptr       *int
+	PtrPtr    **int
+	PtrPtrPtr ***int
+	NilPtr    *int
+
+	S string
+	X []int
+	A [5]uint64
+	x int
 }
 
 func TestTypedClone(t *testing.T) {
 	n := 42
+	pn := &n
+	ppn := &pn
 	src := &cloneStruct{
 		S: "string",
 		X: []int{1, 2, 3, 6, 8, 9},
@@ -25,8 +32,12 @@ func TestTypedClone(t *testing.T) {
 			"x": 1, "y": 2.2,
 			"z": []int{1, 2, 3, 6, 8, 9},
 		},
-		Ptr: &n,
-		A:   [5]uint64{1 << 2, 1 << 4, 1 << 6, 1 << 8, 1 << 10},
+		Ptr:       pn,
+		PtrPtr:    ppn,
+		PtrPtrPtr: &ppn,
+		A:         [5]uint64{1 << 2, 1 << 4, 1 << 6, 1 << 8, 1 << 10},
+
+		x: n,
 	}
 
 	dst := TypeCopy(src)
@@ -37,6 +48,10 @@ func TestTypedClone(t *testing.T) {
 
 	if dst.Ptr == src.Ptr {
 		t.Fatal("cp.Ptr == s.Ptr")
+	}
+
+	if src.x != dst.x {
+		t.Fatal("src.x != dst.x", src.x, dst.x)
 	}
 
 	if !reflect.DeepEqual(src, dst) {
@@ -52,14 +67,22 @@ func TestTypedClone(t *testing.T) {
 }
 
 func BenchmarkTypedClone(b *testing.B) {
-	s := cloneStruct{
+	n := 42
+	pn := &n
+	ppn := &pn
+	s := &cloneStruct{
 		S: "string",
 		X: []int{1, 2, 3, 6, 8, 9},
 		Y: map[string]any{
 			"x": 1, "y": 2.2,
 			"z": []int{1, 2, 3, 6, 8, 9},
 		},
-		A: [5]uint64{1 << 2, 1 << 4, 1 << 6, 1 << 8, 1 << 10},
+		Ptr:       pn,
+		PtrPtr:    ppn,
+		PtrPtrPtr: &ppn,
+		A:         [5]uint64{1 << 2, 1 << 4, 1 << 6, 1 << 8, 1 << 10},
+
+		x: n,
 	}
 	j, _ := json.Marshal(&s)
 
