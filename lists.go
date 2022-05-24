@@ -17,14 +17,41 @@ var (
 	_ msgpack.CustomDecoder      = (*List[any])(nil)
 )
 
-type ListNode[T any] struct {
+type lnode[T any] struct {
 	v          T
-	next, prev *ListNode[T]
+	next, prev *lnode[T]
 }
 
 type List[T any] struct {
-	head, tail *ListNode[T]
+	head, tail *lnode[T]
 	len        int
+}
+
+func (l *List[T]) Len() int { return l.len }
+
+func (l *List[T]) get(idx int) *lnode[T] {
+	if idx > l.len-1 || idx < 0 {
+		panic("index out of range")
+	}
+	n := l.head
+	for i := 0; i < idx; i++ {
+		n = n.next
+	}
+	return n
+}
+
+func (l *List[T]) Set(idx int, v T) {
+	n := l.get(idx)
+	n.v = v
+}
+
+func (l *List[T]) Get(idx int) T {
+	return l.get(idx).v
+}
+
+func (l *List[T]) GetPtr(idx int) *T {
+	n := l.get(idx)
+	return &n.v
 }
 
 func (l *List[T]) Append(vs ...T) *List[T] {
@@ -39,7 +66,7 @@ func (l *List[T]) Append(vs ...T) *List[T] {
 
 func (l *List[T]) Push(v T) {
 	l.len++
-	n := &ListNode[T]{v: v}
+	n := &lnode[T]{v: v}
 	if l.head == nil {
 		l.head, l.tail = n, n
 		return
@@ -67,7 +94,7 @@ func (l *List[T]) Pop() (_ T, _ bool) {
 }
 
 func (l *List[T]) Unshift(v T) {
-	n := &ListNode[T]{v: v}
+	n := &lnode[T]{v: v}
 	l.len++
 	if l.head == nil {
 		l.head, l.tail = n, n
@@ -95,23 +122,37 @@ func (l *List[T]) Shift() (_ T, _ bool) {
 	return n.v, true
 }
 
-func (l *List[T]) Iter() func() (v T, ok bool) {
+func (l *List[T]) Iter(rev bool) func() (v T, ok bool) {
 	n := l.head
+	if rev {
+		n = l.tail
+	}
 	return func() (v T, ok bool) {
 		if ok = n != nil; ok {
 			v = n.v
-			n = n.next
+			if rev {
+				n = n.prev
+			} else {
+				n = n.next
+			}
 		}
 		return
 	}
 }
 
-func (l *List[T]) RevIter() func() (v T, ok bool) {
-	n := l.tail
-	return func() (v T, ok bool) {
+func (l *List[T]) IterPtr(rev bool) func() (v *T, ok bool) {
+	n := l.head
+	if rev {
+		n = l.tail
+	}
+	return func() (v *T, ok bool) {
 		if ok = n != nil; ok {
-			v = n.v
-			n = n.prev
+			v = &n.v
+			if rev {
+				n = n.prev
+			} else {
+				n = n.next
+			}
 		}
 		return
 	}
@@ -137,13 +178,33 @@ func (l *List[T]) Slice(rev bool) (out []T) {
 	return
 }
 
-func (l List[T]) MarshalJSON() ([]byte, error) {
+func (l *List[T]) SlicePtr(rev bool) (out []*T) {
+	if l.head == nil {
+		return
+	}
+	n := l.head
+	if rev {
+		n = l.tail
+	}
+	out = make([]*T, 0, l.len)
+	for n != nil {
+		out = append(out, &n.v)
+		if rev {
+			n = n.prev
+		} else {
+			n = n.next
+		}
+	}
+	return
+}
+
+func (l *List[T]) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteByte('[')
 	enc := json.NewEncoder(&buf)
 	for n := l.head; n != nil; n = n.next {
 		if buf.Len() > 1 {
-			buf.WriteString(", ")
+			buf.WriteString(",")
 		}
 		if err := enc.Encode(n.v); err != nil {
 			return nil, err
