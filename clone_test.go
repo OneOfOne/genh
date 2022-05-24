@@ -29,7 +29,7 @@ func TestTypedClone(t *testing.T) {
 		A:   [5]uint64{1 << 2, 1 << 4, 1 << 6, 1 << 8, 1 << 10},
 	}
 
-	dst := TypedClone(src)
+	dst := TypeCopy(src)
 
 	if dst == src {
 		t.Fatal("cp == s")
@@ -65,7 +65,7 @@ func BenchmarkTypedClone(b *testing.B) {
 
 	b.Run("Fn", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			if !reflect.DeepEqual(&s, TypedClone(&s)) {
+			if !reflect.DeepEqual(&s, TypeCopy(&s)) {
 				b.Fatal("bad")
 			}
 		}

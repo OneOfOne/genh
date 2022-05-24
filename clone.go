@@ -9,7 +9,7 @@ type Cloner[T any] interface {
 	Clone() T
 }
 
-func TypedClone[T any](v T) (cp T) {
+func TypeCopy[T any](v T) (cp T) {
 	if v, ok := any(v).(Cloner[T]); ok {
 		return v.Clone()
 	}
