@@ -48,7 +48,7 @@ func (ls *LSlice[T]) Filter(fn func(T) bool, inplace bool) *LSlice[T] {
 		return ls
 	}
 	ls.mux.RLock()
-	defer ls.mux.RLock()
+	defer ls.mux.RUnlock()
 	return &LSlice[T]{v: Filter(ls.v, fn, false)}
 }
 
@@ -60,7 +60,7 @@ func (ls *LSlice[T]) Map(fn func(T) T, inplace bool) *LSlice[T] {
 		return ls
 	}
 	ls.mux.RLock()
-	defer ls.mux.RLock()
+	defer ls.mux.RUnlock()
 	return &LSlice[T]{v: SliceMapSameType(ls.v, fn, false)}
 }
 
@@ -103,25 +103,25 @@ func (ls *LSlice[T]) Clip() {
 
 func (ls *LSlice[T]) Len() int {
 	ls.mux.RLock()
-	defer ls.mux.RLock()
+	defer ls.mux.RUnlock()
 	return len(ls.v)
 }
 
 func (ls *LSlice[T]) Cap() int {
 	ls.mux.RLock()
-	defer ls.mux.RLock()
+	defer ls.mux.RUnlock()
 	return cap(ls.v)
 }
 
 func (ls *LSlice[T]) Get(i int) T {
 	ls.mux.RLock()
-	defer ls.mux.RLock()
+	defer ls.mux.RUnlock()
 	return ls.v[i]
 }
 
 func (ls *LSlice[T]) ForEach(fn func(i int, v T) bool) {
 	ls.mux.RLock()
-	defer ls.mux.RLock()
+	defer ls.mux.RUnlock()
 	for i, v := range ls.v {
 		if !fn(i, v) {
 			return
@@ -132,7 +132,7 @@ func (ls *LSlice[T]) ForEach(fn func(i int, v T) bool) {
 func (ls *LSlice[T]) Search(cmpFn func(v T) int) (v T, found bool) {
 	var i int
 	ls.mux.RLock()
-	defer ls.mux.RLock()
+	defer ls.mux.RUnlock()
 	if i, found = BinarySearchFunc(ls.v, cmpFn); found {
 		v = ls.v[i]
 	}
@@ -141,13 +141,13 @@ func (ls *LSlice[T]) Search(cmpFn func(v T) int) (v T, found bool) {
 
 func (ls *LSlice[T]) Clone() []T {
 	ls.mux.RLock()
-	defer ls.mux.RLock()
+	defer ls.mux.RUnlock()
 	return Clone(ls.v)
 }
 
 func (ls *LSlice[T]) LClone() *LSlice[T] {
 	ls.mux.RLock()
-	defer ls.mux.RLock()
+	defer ls.mux.RUnlock()
 	return &LSlice[T]{v: Clone(ls.v)}
 }
 
