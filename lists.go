@@ -158,14 +158,13 @@ func (l *List[T]) IterPtr() func() (v *T, ok bool) {
 	}
 }
 
-func (l *List[T]) IterPtrFn(fn func(v *) bool) {
+func (l *List[T]) IterPtrFn(fn func(v *T) bool) {
 	for n := l.head; n != nil; n = n.next {
 		if !fn(&n.v) {
 			break
 		}
 	}
 }
-
 
 func (l *List[T]) Slice(rev bool) (out []T) {
 	if l.head == nil {
