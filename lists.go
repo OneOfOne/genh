@@ -129,41 +129,43 @@ func (l *List[T]) Shift() (_ T, _ bool) {
 	return n.v, true
 }
 
-func (l *List[T]) Iter(rev bool) func() (v T, ok bool) {
+func (l *List[T]) Iter() func() (v T, ok bool) {
 	n := l.head
-	if rev {
-		n = l.tail
-	}
+
 	return func() (v T, ok bool) {
 		if ok = n != nil; ok {
-			v = n.v
-			if rev {
-				n = n.prev
-			} else {
-				n = n.next
-			}
+			v, n = n.v, n.next
 		}
 		return
 	}
 }
 
-func (l *List[T]) IterPtr(rev bool) func() (v *T, ok bool) {
-	n := l.head
-	if rev {
-		n = l.tail
+func (l *List[T]) IterFn(fn func(v T) bool) {
+	for n := l.head; n != nil; n = n.next {
+		if !fn(n.v) {
+			break
+		}
 	}
+}
+
+func (l *List[T]) IterPtr() func() (v *T, ok bool) {
+	n := l.head
 	return func() (v *T, ok bool) {
 		if ok = n != nil; ok {
-			v = &n.v
-			if rev {
-				n = n.prev
-			} else {
-				n = n.next
-			}
+			v, n = &n.v, n.next
 		}
 		return
 	}
 }
+
+func (l *List[T]) IterPtrFn(fn func(v *) bool) {
+	for n := l.head; n != nil; n = n.next {
+		if !fn(&n.v) {
+			break
+		}
+	}
+}
+
 
 func (l *List[T]) Slice(rev bool) (out []T) {
 	if l.head == nil {
