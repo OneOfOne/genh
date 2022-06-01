@@ -52,11 +52,11 @@ func (l *List[T]) Set(idx int, v T) {
 	n.v = v
 }
 
-func (l *List[T]) Get(idx int) T {
+func (l List[T]) Get(idx int) T {
 	return l.get(idx).v
 }
 
-func (l *List[T]) GetPtr(idx int) *T {
+func (l List[T]) GetPtr(idx int) *T {
 	n := l.get(idx)
 	return &n.v
 }
@@ -95,7 +95,7 @@ func (l *List[T]) Unshift(v T) {
 	l.head = n
 }
 
-func (l *List[T]) Iter() func() (v T, ok bool) {
+func (l List[T]) Iter() func() (v T, ok bool) {
 	n := l.head
 
 	return func() (v T, ok bool) {
@@ -106,7 +106,7 @@ func (l *List[T]) Iter() func() (v T, ok bool) {
 	}
 }
 
-func (l *List[T]) IterFn(fn func(v T) bool) {
+func (l List[T]) IterFn(fn func(v T) bool) {
 	for n := l.head; n != nil; n = n.next {
 		if !fn(n.v) {
 			break
@@ -114,7 +114,7 @@ func (l *List[T]) IterFn(fn func(v T) bool) {
 	}
 }
 
-func (l *List[T]) IterPtr() func() (v *T, ok bool) {
+func (l List[T]) IterPtr() func() (v *T, ok bool) {
 	n := l.head
 	return func() (v *T, ok bool) {
 		if ok = n != nil; ok {
@@ -124,7 +124,7 @@ func (l *List[T]) IterPtr() func() (v *T, ok bool) {
 	}
 }
 
-func (l *List[T]) IterPtrFn(fn func(v *T) bool) {
+func (l List[T]) IterPtrFn(fn func(v *T) bool) {
 	for n := l.head; n != nil; n = n.next {
 		if !fn(&n.v) {
 			break
@@ -132,7 +132,7 @@ func (l *List[T]) IterPtrFn(fn func(v *T) bool) {
 	}
 }
 
-func (l *List[T]) Slice() (out []T) {
+func (l List[T]) Slice() (out []T) {
 	if l.head == nil {
 		return
 	}
@@ -144,7 +144,7 @@ func (l *List[T]) Slice() (out []T) {
 	return
 }
 
-func (l *List[T]) SlicePtr() (out []*T) {
+func (l List[T]) SlicePtr() (out []*T) {
 	if l.head == nil {
 		return
 	}
