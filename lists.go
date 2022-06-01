@@ -24,19 +24,19 @@ type (
 	Float64List = List[float64]
 )
 
-type lnode[T any] struct {
-	v          T
-	next, prev *lnode[T]
+type listNode[T any] struct {
+	v    T
+	next *listNode[T]
 }
 
 type List[T any] struct {
-	head, tail *lnode[T]
+	head, tail *listNode[T]
 	len        int
 }
 
 func (l *List[T]) Len() int { return l.len }
 
-func (l *List[T]) get(idx int) *lnode[T] {
+func (l *List[T]) get(idx int) *listNode[T] {
 	if idx > l.len-1 || idx < 0 {
 		panic("index out of range")
 	}
@@ -73,60 +73,26 @@ func (l *List[T]) Append(vs ...T) *List[T] {
 
 func (l *List[T]) Push(v T) {
 	l.len++
-	n := &lnode[T]{v: v}
+	n := &listNode[T]{v: v}
 	if l.head == nil {
 		l.head, l.tail = n, n
 		return
 	}
 
 	l.tail.next = n
-	n.prev = l.tail
 	l.tail = n
 }
 
-func (l *List[T]) Pop() (_ T, _ bool) {
-	if l.tail == nil {
-		return
-	}
-	l.len--
-	n := l.tail
-	l.tail = n.prev
-	if l.tail != nil {
-		l.tail.next = nil
-	} else {
-		l.head = nil
-	}
-
-	return n.v, true
-}
-
 func (l *List[T]) Unshift(v T) {
-	n := &lnode[T]{v: v}
+	n := &listNode[T]{v: v}
 	l.len++
 	if l.head == nil {
 		l.head, l.tail = n, n
 		return
 	}
 
-	l.head.prev = n
 	n.next = l.head
 	l.head = n
-}
-
-func (l *List[T]) Shift() (_ T, _ bool) {
-	if l.head == nil {
-		return
-	}
-	l.len--
-	n := l.head
-	l.head = n.next
-	if l.head != nil {
-		l.head.prev = nil
-	} else {
-		l.tail = nil
-	}
-
-	return n.v, true
 }
 
 func (l *List[T]) Iter() func() (v T, ok bool) {
@@ -166,42 +132,25 @@ func (l *List[T]) IterPtrFn(fn func(v *T) bool) {
 	}
 }
 
-func (l *List[T]) Slice(rev bool) (out []T) {
+func (l *List[T]) Slice() (out []T) {
 	if l.head == nil {
 		return
 	}
-	n := l.head
-	if rev {
-		n = l.tail
-	}
+
 	out = make([]T, 0, l.len)
-	for n != nil {
+	for n := l.head; n != nil; n = n.next {
 		out = append(out, n.v)
-		if rev {
-			n = n.prev
-		} else {
-			n = n.next
-		}
 	}
 	return
 }
 
-func (l *List[T]) SlicePtr(rev bool) (out []*T) {
+func (l *List[T]) SlicePtr() (out []*T) {
 	if l.head == nil {
 		return
 	}
-	n := l.head
-	if rev {
-		n = l.tail
-	}
 	out = make([]*T, 0, l.len)
-	for n != nil {
+	for n := l.head; n != nil; n = n.next {
 		out = append(out, &n.v)
-		if rev {
-			n = n.prev
-		} else {
-			n = n.next
-		}
 	}
 	return
 }
