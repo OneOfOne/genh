@@ -34,7 +34,7 @@ type List[T any] struct {
 	len        int
 }
 
-func (l *List[T]) Len() int { return l.len }
+func (l List[T]) Len() int { return l.len }
 
 func (l *List[T]) get(idx int) *listNode[T] {
 	if idx > l.len-1 || idx < 0 {
