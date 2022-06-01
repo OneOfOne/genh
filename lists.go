@@ -106,7 +106,7 @@ func (l List[T]) Iter() func() (v T, ok bool) {
 	}
 }
 
-func (l List[T]) IterFn(fn func(v T) bool) {
+func (l List[T]) ForEach(fn func(v T) bool) {
 	for n := l.head; n != nil; n = n.next {
 		if !fn(n.v) {
 			break
@@ -124,7 +124,7 @@ func (l List[T]) IterPtr() func() (v *T, ok bool) {
 	}
 }
 
-func (l List[T]) IterPtrFn(fn func(v *T) bool) {
+func (l List[T]) ForEachPtr(fn func(v *T) bool) {
 	for n := l.head; n != nil; n = n.next {
 		if !fn(&n.v) {
 			break
