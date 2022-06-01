@@ -29,6 +29,11 @@ type listNode[T any] struct {
 	next *listNode[T]
 }
 
+func ListOf[T any](vs ...T) (l List[T]) {
+	l.Append(vs...)
+	return
+}
+
 type List[T any] struct {
 	head, tail *listNode[T]
 	len        int
