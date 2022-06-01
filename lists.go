@@ -106,6 +106,20 @@ func (l List[T]) Iter() func() (v T, ok bool) {
 	}
 }
 
+func (l List[T]) IterChan(cap int) <-chan T {
+	if cap == 0 {
+		cap = 1
+	}
+	ch := make(chan T, cap)
+	go func() {
+		defer close(ch)
+		for n := l.head; n != nil; n = n.next {
+			ch <- n.v
+		}
+	}()
+	return ch
+}
+
 func (l List[T]) ForEach(fn func(v T) bool) {
 	for n := l.head; n != nil; n = n.next {
 		if !fn(n.v) {
