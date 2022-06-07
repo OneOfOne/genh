@@ -27,7 +27,7 @@ func (lm *LMap[K, V]) Set(k K, v V) {
 	lm.mux.Unlock()
 }
 
-func (lm *LMap[K, V]) Update(k K, fn func(V) V) {
+func (lm *LMap[K, V]) UpdateKey(k K, fn func(V) V) {
 	lm.mux.Lock()
 	defer lm.mux.Unlock()
 	if lm.m == nil {
@@ -72,6 +72,12 @@ func (lm *LMap[K, V]) Clone() (m map[K]V) {
 	m = MapClone(lm.m)
 	lm.mux.RUnlock()
 	return
+}
+
+func (lm *LMap[K, V]) Update(fn func(m map[K]V)) {
+	lm.mux.Lock()
+	fn(lm.m)
+	lm.mux.Unlock()
 }
 
 func (lm *LMap[K, V]) Read(fn func(m map[K]V)) {
