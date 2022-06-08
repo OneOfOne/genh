@@ -21,7 +21,7 @@ type cloneStruct struct {
 	x int
 }
 
-func TestTypedClone(t *testing.T) {
+func TestClone(t *testing.T) {
 	n := 42
 	pn := &n
 	ppn := &pn
@@ -40,7 +40,7 @@ func TestTypedClone(t *testing.T) {
 		x: n,
 	}
 
-	dst := TypeCopy(src)
+	dst := Clone(src)
 
 	if dst == src {
 		t.Fatal("cp == s")
@@ -55,7 +55,9 @@ func TestTypedClone(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(src, dst) {
-		t.Fatal("!reflect.DeepEqual(src, dst)")
+		j1, _ := json.Marshal(src)
+		j2, _ := json.Marshal(dst)
+		t.Fatalf("!reflect.DeepEqual(src, dst)\nsrc: %s\n----\ndst: %s", j1, j2)
 	}
 
 	sj, _ := json.Marshal(src)
@@ -66,7 +68,9 @@ func TestTypedClone(t *testing.T) {
 	t.Logf("%s", sj)
 }
 
-func BenchmarkTypedClone(b *testing.B) {
+var cloneSink *cloneStruct
+
+func BenchmarkClone(b *testing.B) {
 	n := 42
 	pn := &n
 	ppn := &pn
@@ -88,9 +92,7 @@ func BenchmarkTypedClone(b *testing.B) {
 
 	b.Run("Fn", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			if !reflect.DeepEqual(&s, TypeCopy(&s)) {
-				b.Fatal("bad")
-			}
+			cloneSink = Clone(s)
 		}
 	})
 	b.Run("JSON", func(b *testing.B) {
@@ -99,10 +101,7 @@ func BenchmarkTypedClone(b *testing.B) {
 			if err := json.Unmarshal(j, &ss); err != nil {
 				b.Fatal(err)
 			}
-			jj, _ := json.Marshal(&ss)
-			if !bytes.Equal(jj, j) {
-				b.Fatalf("bad\n%s\n%s", j, jj)
-			}
+			cloneSink = &ss
 		}
 	})
 }

@@ -9,16 +9,16 @@ type Cloner[T any] interface {
 	Clone() T
 }
 
-func TypeCopy[T any](v T) (cp T) {
+func Clone[T any](v T) (cp T) {
 	if v, ok := any(v).(Cloner[T]); ok {
 		return v.Clone()
 	}
 	src, dst := reflect.Indirect(reflect.ValueOf(v)), reflect.ValueOf(&cp).Elem()
-	ReflectCopy(src, dst)
+	ReflectClone(dst, src)
 	return
 }
 
-func ReflectCopy(src, dst reflect.Value) {
+func ReflectClone(dst, src reflect.Value) {
 	if !src.IsValid() || src.IsZero() {
 		return
 	}
@@ -44,7 +44,7 @@ func ReflectCopy(src, dst reflect.Value) {
 
 	case reflect.Array:
 		for i := 0; i < src.Len(); i++ {
-			ReflectCopy(src.Index(i), dst.Index(i))
+			ReflectClone(dst.Index(i), src.Index(i))
 		}
 
 	case reflect.Map:
@@ -59,11 +59,11 @@ func ReflectCopy(src, dst reflect.Value) {
 		}
 
 	case reflect.Struct:
-		dst.Set(src)
+		dst.Set(src) // copy private fields
 		for i := 0; i < styp.NumField(); i++ {
 			f := dst.Field(i)
 			if f.CanSet() {
-				ReflectCopy(src.Field(i), dst.Field(i))
+				ReflectClone(dst.Field(i), src.Field(i))
 			}
 		}
 
@@ -72,7 +72,7 @@ func ReflectCopy(src, dst reflect.Value) {
 			return
 		}
 		v := reflect.New(styp).Elem()
-		ReflectCopy(src.Elem(), v)
+		ReflectClone(v, src.Elem())
 		dst.Set(v)
 
 	case reflect.Interface:
@@ -80,7 +80,7 @@ func ReflectCopy(src, dst reflect.Value) {
 			return
 		}
 		v := reflect.New(src.Elem().Type()).Elem()
-		ReflectCopy(src.Elem(), v)
+		ReflectClone(v, src.Elem())
 		dst.Set(v)
 
 	default:
@@ -92,7 +92,7 @@ func maybeCopy(src reflect.Value) reflect.Value {
 	switch src.Kind() {
 	case reflect.Ptr, reflect.Array, reflect.Slice, reflect.Map:
 		nv := reflect.New(src.Type()).Elem()
-		ReflectCopy(src, nv)
+		ReflectClone(nv, src)
 		return nv
 	case reflect.Interface:
 		return maybeCopy(src.Elem())
