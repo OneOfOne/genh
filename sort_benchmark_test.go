@@ -80,7 +80,7 @@ func BenchmarkSlicesSortInts_Reversed(b *testing.B) {
 // generate similar results.
 func TestIntSorts(t *testing.T) {
 	ints := makeRandomInts(200)
-	ints2 := Clone(ints)
+	ints2 := SliceClone(ints)
 
 	sort.Ints(ints)
 	Sort(ints2)
@@ -113,7 +113,7 @@ func makeRandomStrings(n int) []string {
 
 func TestStringSorts(t *testing.T) {
 	ss := makeRandomStrings(200)
-	ss2 := Clone(ss)
+	ss2 := SliceClone(ss)
 
 	sort.Strings(ss)
 	Sort(ss2)

@@ -3,6 +3,8 @@ package genh
 import (
 	"encoding/json"
 	"sync"
+
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 // LValue wraps a sync.RWMutex to allow simple and safe operation on the mutex.
@@ -52,6 +54,18 @@ func (m *LValue[T]) CompareAndSwap(old, new T, eq func(a, b T) bool) (ok bool) {
 		m.v = new
 	}
 	return
+}
+
+func (m *LValue[T]) MarshalBinary() ([]byte, error) {
+	m.mux.RLock()
+	defer m.mux.RUnlock()
+	return msgpack.Marshal(m.v)
+}
+
+func (m *LValue[T]) UnmarshalBinary(b []byte) error {
+	m.mux.Lock()
+	defer m.mux.Unlock()
+	return msgpack.Unmarshal(b, &m.v)
 }
 
 func (m *LValue[T]) MarshalJSON() ([]byte, error) {

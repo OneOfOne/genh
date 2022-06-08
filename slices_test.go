@@ -376,7 +376,7 @@ func TestSliceInsert(t *testing.T) {
 		t.Errorf("Insert(%v, 0) = %v, want %v", s, got, s)
 	}
 	for _, test := range insertTests {
-		copy := Clone(test.s)
+		copy := SliceClone(test.s)
 		if got := Insert(copy, test.i, test.add...); !Equal(got, test.want) {
 			t.Errorf("Insert(%v, %d, %v...) = %v, want %v", test.s, test.i, test.add, got, test.want)
 		}
@@ -422,7 +422,7 @@ var deleteTests = []struct {
 
 func TestSliceDelete(t *testing.T) {
 	for _, test := range deleteTests {
-		copy := Clone(test.s)
+		copy := SliceClone(test.s)
 		if got := Delete(copy, test.i, test.j); !Equal(got, test.want) {
 			t.Errorf("Delete(%v, %d, %d) = %v, want %v", test.s, test.i, test.j, got, test.want)
 		}
@@ -431,7 +431,7 @@ func TestSliceDelete(t *testing.T) {
 
 func TestSliceClone(t *testing.T) {
 	s1 := []int{1, 2, 3}
-	s2 := Clone(s1)
+	s2 := SliceClone(s1)
 	if !Equal(s1, s2) {
 		t.Errorf("Clone(%v) = %v, want %v", s1, s2, s1)
 	}
@@ -440,10 +440,10 @@ func TestSliceClone(t *testing.T) {
 	if !Equal(s2, want) {
 		t.Errorf("Clone(%v) changed unexpectedly to %v", want, s2)
 	}
-	if got := Clone([]int(nil)); got != nil {
+	if got := SliceClone([]int(nil)); got != nil {
 		t.Errorf("Clone(nil) = %#v, want nil", got)
 	}
-	if got := Clone(s1[:0]); got == nil || len(got) != 0 {
+	if got := SliceClone(s1[:0]); got == nil || len(got) != 0 {
 		t.Errorf("Clone(%v) = %#v, want %#v", s1[:0], got, s1[:0])
 	}
 }
@@ -480,7 +480,7 @@ var compactTests = []struct {
 
 func TestSliceCompact(t *testing.T) {
 	for _, test := range compactTests {
-		copy := Clone(test.s)
+		copy := SliceClone(test.s)
 		if got := Compact(copy); !Equal(got, test.want) {
 			t.Errorf("Compact(%v) = %v, want %v", test.s, got, test.want)
 		}
@@ -489,14 +489,14 @@ func TestSliceCompact(t *testing.T) {
 
 func TestSliceCompactFunc(t *testing.T) {
 	for _, test := range compactTests {
-		copy := Clone(test.s)
+		copy := SliceClone(test.s)
 		if got := CompactFunc(copy, equal[int]); !Equal(got, test.want) {
 			t.Errorf("CompactFunc(%v, equal[int]) = %v, want %v", test.s, got, test.want)
 		}
 	}
 
 	s1 := []string{"a", "a", "A", "B", "b"}
-	copy := Clone(s1)
+	copy := SliceClone(s1)
 	want := []string{"a", "B"}
 	if got := CompactFunc(copy, strings.EqualFold); !Equal(got, want) {
 		t.Errorf("CompactFunc(%v, strings.EqualFold) = %v, want %v", s1, got, want)
@@ -505,7 +505,7 @@ func TestSliceCompactFunc(t *testing.T) {
 
 func TestSliceGrow(t *testing.T) {
 	s1 := []int{1, 2, 3}
-	copy := Clone(s1)
+	copy := SliceClone(s1)
 	s2 := Grow(copy, 1000)
 	if !Equal(s1, s2) {
 		t.Errorf("Grow(%v) = %v, want %v", s1, s2, s1)
@@ -517,7 +517,7 @@ func TestSliceGrow(t *testing.T) {
 
 func TestSliceClip(t *testing.T) {
 	s1 := []int{1, 2, 3, 4, 5, 6}[:3]
-	orig := Clone(s1)
+	orig := SliceClone(s1)
 	if len(s1) != 3 {
 		t.Errorf("len(%v) = %d, want 3", s1, len(s1))
 	}

@@ -142,13 +142,13 @@ func (ls *LSlice[T]) Search(cmpFn func(v T) int) (v T, found bool) {
 func (ls *LSlice[T]) Clone() []T {
 	ls.mux.RLock()
 	defer ls.mux.RUnlock()
-	return Clone(ls.v)
+	return SliceClone(ls.v)
 }
 
 func (ls *LSlice[T]) LClone() *LSlice[T] {
 	ls.mux.RLock()
 	defer ls.mux.RUnlock()
-	return &LSlice[T]{v: Clone(ls.v)}
+	return &LSlice[T]{v: SliceClone(ls.v)}
 }
 
 func (ls *LSlice[T]) Raw() []T {

@@ -30,8 +30,7 @@ type listNode[T any] struct {
 }
 
 func ListOf[T any](vs ...T) (l List[T]) {
-	l.Append(vs...)
-	return
+	return l.Append(vs...)
 }
 
 type List[T any] struct {
@@ -41,7 +40,7 @@ type List[T any] struct {
 
 func (l List[T]) Len() int { return l.len }
 
-func (l *List[T]) get(idx int) *listNode[T] {
+func (l List[T]) get(idx int) *listNode[T] {
 	if idx > l.len-1 || idx < 0 {
 		panic("index out of range")
 	}
@@ -66,19 +65,22 @@ func (l List[T]) GetPtr(idx int) *T {
 	return &n.v
 }
 
-func (l *List[T]) Append(vs ...T) *List[T] {
-	if l == nil {
-		l = &List[T]{}
-	}
-	for _, v := range vs {
-		l.Push(v)
+func (l *List[T]) Push(v T) {
+	l.pushNode(&listNode[T]{v: v})
+}
+
+func (l List[T]) Append(vs ...T) List[T] {
+	nodes := make([]listNode[T], len(vs))
+	for i, v := range vs {
+		n := &nodes[i]
+		n.v = v
+		l.pushNode(n)
 	}
 	return l
 }
 
-func (l *List[T]) Push(v T) {
+func (l *List[T]) pushNode(n *listNode[T]) {
 	l.len++
-	n := &listNode[T]{v: v}
 	if l.head == nil {
 		l.head, l.tail = n, n
 		return
@@ -88,7 +90,7 @@ func (l *List[T]) Push(v T) {
 	l.tail = n
 }
 
-func (l *List[T]) Unshift(v T) {
+func (l *List[T]) Prepend(v T) {
 	n := &listNode[T]{v: v}
 	l.len++
 	if l.head == nil {
@@ -108,6 +110,14 @@ func (l List[T]) Iter() func() (v T, ok bool) {
 			v, n = n.v, n.next
 		}
 		return
+	}
+}
+
+func (l List[T]) ForEachPtr(fn func(v *T) bool) {
+	for n := l.head; n != nil; n = n.next {
+		if !fn(&n.v) {
+			break
+		}
 	}
 }
 
@@ -143,14 +153,6 @@ func (l List[T]) IterPtr() func() (v *T, ok bool) {
 	}
 }
 
-func (l List[T]) ForEachPtr(fn func(v *T) bool) {
-	for n := l.head; n != nil; n = n.next {
-		if !fn(&n.v) {
-			break
-		}
-	}
-}
-
 func (l List[T]) Slice() (out []T) {
 	if l.head == nil {
 		return
@@ -174,6 +176,11 @@ func (l List[T]) SlicePtr() (out []*T) {
 	return
 }
 
+func (l *List[T]) Clear() {
+	l.head, l.tail = nil, nil
+	l.len = 0
+}
+
 func (l List[T]) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteByte('[')
@@ -185,7 +192,6 @@ func (l List[T]) MarshalJSON() ([]byte, error) {
 		if err := enc.Encode(n.v); err != nil {
 			return nil, err
 		}
-		// buf.Truncate(buf.Len() - 2)
 	}
 	buf.WriteByte(']')
 	return buf.Bytes(), nil
@@ -196,7 +202,7 @@ func (l *List[T]) UnmarshalJSON(p []byte) error {
 	if err := json.Unmarshal(p, &v); err != nil {
 		return err
 	}
-	l.Append(v...)
+	*l = l.Append(v...)
 	return nil
 }
 
@@ -226,13 +232,13 @@ func (l *List[T]) DecodeMsgpack(dec *msgpack.Decoder) (err error) {
 	if n, err = dec.DecodeArrayLen(); err != nil {
 		return
 	}
-
+	nodes := make([]listNode[T], n)
 	for i := 0; i < n; i++ {
-		var v T
-		if err = dec.Decode(&v); err != nil {
+		n := &nodes[i]
+		if err = dec.Decode(&n.v); err != nil {
 			return
 		}
-		l.Push(v)
+		l.pushNode(n)
 	}
 	return
 }

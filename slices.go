@@ -155,9 +155,9 @@ func Delete[S ~[]E, E any](s S, i, j int) S {
 	return append(s[:i], s[j:]...)
 }
 
-// Clone returns a copy of the slice.
+// SliceClone returns a copy of the slice.
 // The elements are copied using assignment, so this is a shallow clone.
-func Clone[S ~[]E, E any](s S) S {
+func SliceClone[S ~[]E, E any](s S) S {
 	// Preserve nil in case it matters.
 	if s == nil {
 		return nil
