@@ -1,5 +1,17 @@
 package genh
 
+func GroupBy[M ~map[MapKey]MapVal, GM map[MapKey][]MapVal, MapKey comparable, MapVal any](in M, fn func(k MapKey, v MapVal) MapKey) (out GM) {
+	out = make(GM)
+	for k, v := range in {
+		gk := fn(k, v)
+		out[gk] = append(out[gk], v)
+	}
+	for k := range out {
+		out[k] = Clip(out[k])
+	}
+	return
+}
+
 // Filter filters a slice optionally in place.
 func Filter[S ~[]E, E any](in S, f func(E) (keep bool), inplace bool) (out S) {
 	if inplace {
