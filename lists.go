@@ -207,11 +207,11 @@ func (l *List[T]) UnmarshalJSON(p []byte) error {
 }
 
 func (l List[T]) MarshalBinary() ([]byte, error) {
-	return msgpack.Marshal(&l)
+	return MarshalMsgpack(&l)
 }
 
 func (l *List[T]) UnmarshalBinary(p []byte) error {
-	return msgpack.Unmarshal(p, &l)
+	return UnmarshalMsgpack(p, &l)
 }
 
 func (l List[T]) EncodeMsgpack(enc *msgpack.Encoder) (err error) {

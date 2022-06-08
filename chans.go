@@ -14,8 +14,8 @@ func SliceToChan[T any](s []T, cap int) <-chan T {
 	return ch
 }
 
-func ChanToSlice[T any](s <-chan T) []T {
-	out := make([]T, cap(s))
+func ChanToSlice[T any](s <-chan T, cap int) []T {
+	out := make([]T, cap)
 	for v := range s {
 		out = append(out, v)
 	}

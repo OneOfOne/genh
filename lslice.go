@@ -157,14 +157,26 @@ func (ls *LSlice[T]) Raw() []T {
 	return ls.v
 }
 
-func (lm *LSlice[T]) MarshalJSON() ([]byte, error) {
-	lm.mux.RLock()
-	defer lm.mux.RUnlock()
-	return json.Marshal(lm.v)
+func (ls *LSlice[T]) MarshalJSON() ([]byte, error) {
+	ls.mux.RLock()
+	defer ls.mux.RUnlock()
+	return json.Marshal(ls.v)
 }
 
-func (lm *LSlice[T]) UnmarshalJSON(p []byte) error {
-	lm.mux.Lock()
-	defer lm.mux.Unlock()
-	return json.Unmarshal(p, &lm.v)
+func (ls *LSlice[T]) UnmarshalJSON(p []byte) error {
+	ls.mux.Lock()
+	defer ls.mux.Unlock()
+	return json.Unmarshal(p, &ls.v)
+}
+
+func (ls *LSlice[T]) MarshalBinary() ([]byte, error) {
+	ls.mux.RLock()
+	defer ls.mux.RUnlock()
+	return MarshalMsgpack(ls.v)
+}
+
+func (ls *LSlice[T]) UnmarshalBinary(p []byte) error {
+	ls.mux.Lock()
+	defer ls.mux.Unlock()
+	return UnmarshalMsgpack(p, &ls.v)
 }

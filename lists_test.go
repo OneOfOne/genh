@@ -3,8 +3,6 @@ package genh
 import (
 	"encoding/json"
 	"testing"
-
-	"github.com/vmihailenco/msgpack/v5"
 )
 
 type S struct {
@@ -32,12 +30,12 @@ func TestLists(t *testing.T) {
 		t.Fatal("exp != ll", exp, ll)
 	}
 
-	b, err = msgpack.Marshal(l)
+	b, err = MarshalMsgpack(l)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var ll2 List[S]
-	err = msgpack.Unmarshal(b, &ll2)
+	err = UnmarshalMsgpack(b, &ll2)
 	if err != nil {
 		t.Error(err)
 	}

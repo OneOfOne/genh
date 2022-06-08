@@ -1,6 +1,8 @@
 package genh
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 func Zero[T any]() (_ T) { return }
 
@@ -27,10 +29,18 @@ func (p *PtrTo[T]) Val() T {
 	return Zero[T]()
 }
 
-func (p *PtrTo[T]) MarshalJSON() ([]byte, error) {
+func (p PtrTo[T]) MarshalJSON() ([]byte, error) {
 	return json.Marshal(p.v)
 }
 
 func (p *PtrTo[T]) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, &p.v)
+}
+
+func (p PtrTo[T]) MarshalBinary() ([]byte, error) {
+	return MarshalMsgpack(p.v)
+}
+
+func (p *PtrTo[T]) UnmarshalBinary(b []byte) error {
+	return UnmarshalMsgpack(b, &p.v)
 }

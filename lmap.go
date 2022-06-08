@@ -174,3 +174,15 @@ func (lm *LMap[K, V]) UnmarshalJSON(p []byte) error {
 	defer lm.mux.Unlock()
 	return json.Unmarshal(p, &lm.m)
 }
+
+func (lm *LMap[K, V]) MarshalBinary() ([]byte, error) {
+	lm.mux.RLock()
+	defer lm.mux.RUnlock()
+	return MarshalMsgpack(lm.m)
+}
+
+func (lm *LMap[K, V]) UnmarshalBinary(p []byte) error {
+	lm.mux.Lock()
+	defer lm.mux.Unlock()
+	return UnmarshalMsgpack(p, &lm.m)
+}

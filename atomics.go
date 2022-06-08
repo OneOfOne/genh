@@ -10,20 +10,38 @@ import (
 )
 
 type (
-	AtomicInt8  = signedValue32[int8]
-	AtomicInt16 = signedValue32[int16]
-	AtomicInt32 = signedValue32[int32]
-	AtomicInt64 = signedValue64[int64]
-	AtomicInt   = signedValue64[int]
+	AtomicInt8  = AtomicSigned32[int8]
+	AtomicInt16 = AtomicSigned32[int16]
+	AtomicInt32 = AtomicSigned32[int32]
+	AtomicInt64 = AtomicSigned64[int64]
+	AtomicInt   = AtomicSigned64[int]
 
-	AtomicUint8  = unsignedValue32[uint8]
-	AtomicUint16 = unsignedValue32[uint16]
-	AtomicUint32 = unsignedValue32[uint32]
-	AtomicUint64 = unsignedValue64[uint64]
-	AtomicUint   = unsignedValue64[uint]
+	AtomicUint8  = AtomicUnsigned32[uint8]
+	AtomicUint16 = AtomicUnsigned32[uint16]
+	AtomicUint32 = AtomicUnsigned32[uint32]
+	AtomicUint64 = AtomicUnsigned64[uint64]
+	AtomicUint   = AtomicUnsigned64[uint]
 
-	AtomicUintptr = unsignedValue64[uintptr]
+	AtomicUintptr = AtomicUnsigned64[uintptr]
 )
+
+type AtomicBool struct {
+	v AtomicInt32
+}
+
+func (v *AtomicBool) Store(val bool) { v.v.Store(Iff[int32](val, 1, 2)) }
+
+func (v *AtomicBool) Load() bool { return v.v.Load() != 0 }
+
+func (v *AtomicBool) Swap(val bool) (old bool) { return v.v.Swap(Iff[int32](val, 1, 2)) != 0 }
+func (v *AtomicBool) CompareAndSwap(old, new bool) bool {
+	return v.v.CompareAndSwap(Iff[int32](old, 1, 2), Iff[int32](new, 1, 2))
+}
+
+func (v *AtomicBool) MarshalJSON() ([]byte, error)   { return json.Marshal(v.Load()) }
+func (v *AtomicBool) UnmarshalJSON(b []byte) error   { return unmarshalJSON(b, v.Store) }
+func (v *AtomicBool) MarshalBinary() ([]byte, error) { return marshalBinaryI(v.v.Load()) }
+func (v *AtomicBool) UnmarshalBinary(b []byte) error { return unmarshalBinaryI(b, v.v.Store) }
 
 type AtomicFloat64 struct {
 	v AtomicUint64
@@ -55,77 +73,73 @@ func (v *AtomicFloat64) UnmarshalJSON(b []byte) error   { return unmarshalJSON(b
 func (v *AtomicFloat64) MarshalBinary() ([]byte, error) { return marshalBinaryU(v.v.Load()) }
 func (v *AtomicFloat64) UnmarshalBinary(b []byte) error { return unmarshalBinaryU(b, v.v.Store) }
 
-type signedValue64[T Signed] struct {
-	noCopy noCopy
-	v      int64
+type AtomicSigned32[T Signed] struct {
+	v atomic.Int32
 }
 
-func (v *signedValue64[T]) Store(val T)        { atomic.StoreInt64(&v.v, int64(val)) }
-func (v *signedValue64[T]) Load() T            { return T(atomic.LoadInt64(&v.v)) }
-func (v *signedValue64[T]) Add(val T) T        { return T(atomic.AddInt64(&v.v, int64(val))) }
-func (v *signedValue64[T]) Swap(val T) (old T) { return T(atomic.SwapInt64(&v.v, int64(val))) }
-func (v *signedValue64[T]) CompareAndSwap(old, new T) bool {
-	return atomic.CompareAndSwapInt64(&v.v, int64(old), int64(new))
+func (v *AtomicSigned32[T]) Store(val T)        { v.v.Store(int32(val)) }
+func (v *AtomicSigned32[T]) Load() T            { return T(v.v.Load()) }
+func (v *AtomicSigned32[T]) Add(val T) T        { return T(v.v.Add(int32(val))) }
+func (v *AtomicSigned32[T]) Swap(val T) (old T) { return T(v.v.Swap(int32(val))) }
+func (v *AtomicSigned32[T]) CompareAndSwap(old, new T) bool {
+	return v.v.CompareAndSwap(int32(old), int32(new))
 }
 
-func (v *signedValue64[T]) MarshalJSON() ([]byte, error)   { return json.Marshal(v.Load()) }
-func (v *signedValue64[T]) UnmarshalJSON(b []byte) error   { return unmarshalJSON(b, v.Store) }
-func (v *signedValue64[T]) MarshalBinary() ([]byte, error) { return marshalBinaryI(v.Load()) }
-func (v *signedValue64[T]) UnmarshalBinary(b []byte) error { return unmarshalBinaryI(b, v.Store) }
+func (v *AtomicSigned32[T]) MarshalJSON() ([]byte, error)   { return json.Marshal(v.Load()) }
+func (v *AtomicSigned32[T]) UnmarshalJSON(b []byte) error   { return unmarshalJSON(b, v.Store) }
+func (v *AtomicSigned32[T]) MarshalBinary() ([]byte, error) { return marshalBinaryI(v.Load()) }
+func (v *AtomicSigned32[T]) UnmarshalBinary(b []byte) error { return unmarshalBinaryI(b, v.Store) }
 
-type signedValue32[T Signed] struct {
-	noCopy noCopy
-	v      int32
+type AtomicSigned64[T Signed] struct {
+	v atomic.Int64
 }
 
-func (v *signedValue32[T]) Store(val T)        { atomic.StoreInt32(&v.v, int32(val)) }
-func (v *signedValue32[T]) Load() T            { return T(atomic.LoadInt32(&v.v)) }
-func (v *signedValue32[T]) Add(val T) T        { return T(atomic.AddInt32(&v.v, int32(val))) }
-func (v *signedValue32[T]) Swap(val T) (old T) { return T(atomic.SwapInt32(&v.v, int32(val))) }
-func (v *signedValue32[T]) CompareAndSwap(old, new T) bool {
-	return atomic.CompareAndSwapInt32(&v.v, int32(old), int32(new))
+func (v *AtomicSigned64[T]) Store(val T)        { v.v.Store(int64(val)) }
+func (v *AtomicSigned64[T]) Load() T            { return T(v.v.Load()) }
+func (v *AtomicSigned64[T]) Add(val T) T        { return T(v.v.Add(int64(val))) }
+func (v *AtomicSigned64[T]) Swap(val T) (old T) { return T(v.v.Swap(int64(val))) }
+func (v *AtomicSigned64[T]) CompareAndSwap(old, new T) bool {
+	return v.v.CompareAndSwap(int64(old), int64(new))
 }
 
-func (v *signedValue32[T]) MarshalJSON() ([]byte, error)   { return json.Marshal(v.Load()) }
-func (v *signedValue32[T]) UnmarshalJSON(b []byte) error   { return unmarshalJSON(b, v.Store) }
-func (v *signedValue32[T]) MarshalBinary() ([]byte, error) { return marshalBinaryI(v.Load()) }
-func (v *signedValue32[T]) UnmarshalBinary(b []byte) error { return unmarshalBinaryI(b, v.Store) }
+func (v *AtomicSigned64[T]) MarshalJSON() ([]byte, error)   { return json.Marshal(v.Load()) }
+func (v *AtomicSigned64[T]) UnmarshalJSON(b []byte) error   { return unmarshalJSON(b, v.Store) }
+func (v *AtomicSigned64[T]) MarshalBinary() ([]byte, error) { return marshalBinaryI(v.Load()) }
+func (v *AtomicSigned64[T]) UnmarshalBinary(b []byte) error { return unmarshalBinaryI(b, v.Store) }
 
-type unsignedValue64[T Unsigned] struct {
-	noCopy noCopy
-	v      uint64
+type AtomicUnsigned32[T Unsigned] struct {
+	v atomic.Uint32
 }
 
-func (v *unsignedValue64[T]) Store(val T)        { atomic.StoreUint64(&v.v, uint64(val)) }
-func (v *unsignedValue64[T]) Load() T            { return T(atomic.LoadUint64(&v.v)) }
-func (v *unsignedValue64[T]) Add(val T) T        { return T(atomic.AddUint64(&v.v, uint64(val))) }
-func (v *unsignedValue64[T]) Swap(val T) (old T) { return T(atomic.SwapUint64(&v.v, uint64(val))) }
-func (v *unsignedValue64[T]) CompareAndSwap(old, new T) bool {
-	return atomic.CompareAndSwapUint64(&v.v, uint64(old), uint64(new))
+func (v *AtomicUnsigned32[T]) Store(val T)        { v.v.Store(uint32(val)) }
+func (v *AtomicUnsigned32[T]) Load() T            { return T(v.v.Load()) }
+func (v *AtomicUnsigned32[T]) Add(val T) T        { return T(v.v.Add(uint32(val))) }
+func (v *AtomicUnsigned32[T]) Swap(val T) (old T) { return T(v.v.Swap(uint32(val))) }
+func (v *AtomicUnsigned32[T]) CompareAndSwap(old, new T) bool {
+	return v.v.CompareAndSwap(uint32(old), uint32(new))
 }
 
-func (v *unsignedValue64[T]) MarshalJSON() ([]byte, error)   { return json.Marshal(v.Load()) }
-func (v *unsignedValue64[T]) UnmarshalJSON(b []byte) error   { return unmarshalJSON(b, v.Store) }
-func (v *unsignedValue64[T]) MarshalBinary() ([]byte, error) { return marshalBinaryU(v.Load()) }
-func (v *unsignedValue64[T]) UnmarshalBinary(b []byte) error { return unmarshalBinaryU(b, v.Store) }
+func (v *AtomicUnsigned32[T]) MarshalJSON() ([]byte, error)   { return json.Marshal(v.Load()) }
+func (v *AtomicUnsigned32[T]) UnmarshalJSON(b []byte) error   { return unmarshalJSON(b, v.Store) }
+func (v *AtomicUnsigned32[T]) MarshalBinary() ([]byte, error) { return marshalBinaryU(v.Load()) }
+func (v *AtomicUnsigned32[T]) UnmarshalBinary(b []byte) error { return unmarshalBinaryU(b, v.Store) }
 
-type unsignedValue32[T Unsigned] struct {
-	noCopy noCopy
-	v      uint32
+type AtomicUnsigned64[T Unsigned] struct {
+	v atomic.Uint64
 }
 
-func (v *unsignedValue32[T]) Store(val T)        { atomic.StoreUint32(&v.v, uint32(val)) }
-func (v *unsignedValue32[T]) Load() T            { return T(atomic.LoadUint32(&v.v)) }
-func (v *unsignedValue32[T]) Add(val T) T        { return T(atomic.AddUint32(&v.v, uint32(val))) }
-func (v *unsignedValue32[T]) Swap(val T) (old T) { return T(atomic.SwapUint32(&v.v, uint32(val))) }
-func (v *unsignedValue32[T]) CompareAndSwap(old, new T) bool {
-	return atomic.CompareAndSwapUint32(&v.v, uint32(old), uint32(new))
+func (v *AtomicUnsigned64[T]) Store(val T)        { v.v.Store(uint64(val)) }
+func (v *AtomicUnsigned64[T]) Load() T            { return T(v.v.Load()) }
+func (v *AtomicUnsigned64[T]) Add(val T) T        { return T(v.v.Add(uint64(val))) }
+func (v *AtomicUnsigned64[T]) Swap(val T) (old T) { return T(v.v.Swap(uint64(val))) }
+func (v *AtomicUnsigned64[T]) CompareAndSwap(old, new T) bool {
+	return v.v.CompareAndSwap(uint64(old), uint64(new))
 }
 
-func (v *unsignedValue32[T]) MarshalJSON() ([]byte, error)   { return json.Marshal(v.Load()) }
-func (v *unsignedValue32[T]) UnmarshalJSON(b []byte) error   { return unmarshalJSON(b, v.Store) }
-func (v *unsignedValue32[T]) MarshalBinary() ([]byte, error) { return marshalBinaryU(v.Load()) }
-func (v *unsignedValue32[T]) UnmarshalBinary(b []byte) error { return unmarshalBinaryU(b, v.Store) }
+func (v *AtomicUnsigned64[T]) MarshalJSON() ([]byte, error)   { return json.Marshal(v.Load()) }
+func (v *AtomicUnsigned64[T]) UnmarshalJSON(b []byte) error   { return unmarshalJSON(b, v.Store) }
+func (v *AtomicUnsigned64[T]) MarshalBinary() ([]byte, error) { return marshalBinaryU(v.Load()) }
+func (v *AtomicUnsigned64[T]) UnmarshalBinary(b []byte) error { return unmarshalBinaryU(b, v.Store) }
 
 type noCopy struct{}
 
