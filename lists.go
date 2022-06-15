@@ -230,13 +230,7 @@ func (l *List[T]) DecodeMsgpack(dec *msgpack.Decoder) (err error) {
 }
 
 type ListIterator[T any] struct { // i hate how much this feels like java/c++
-	n       *listNode[T]
-	started bool
-}
-
-func (it *ListIterator[T]) Insert() (v T) {
-	it.n.next = &listNode[T]{v: v, next: it.n.next}
-	return
+	n *listNode[T]
 }
 
 func (it *ListIterator[T]) Value() (v T) {
@@ -254,11 +248,11 @@ func (it *ListIterator[T]) ValuePtr() (v *T) {
 }
 
 func (it *ListIterator[T]) Next() bool {
-	if it.started && it.n != nil {
-		it.n = it.n.next
-	} else if it.n != nil {
-		it.n, it.started = it.n.next, true
+	if it.n == nil {
+		return false
 	}
-
-	return it.n != nil
+	if it.n != nil {
+		it.n = it.n.next
+	}
+	return true
 }

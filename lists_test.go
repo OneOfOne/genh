@@ -45,6 +45,7 @@ func TestLists(t *testing.T) {
 
 	it := l.Iter()
 	for v, i := it.Value(), 0; it.Next(); v, i = it.Value(), i+1 {
+		t.Log(v, exp[i], i)
 		if v != exp[i] {
 			t.Fatal("v != exp[i]", v, exp[i])
 		}
