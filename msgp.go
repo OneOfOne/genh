@@ -62,7 +62,7 @@ func DecodeMsgpack(r io.Reader, v any) error {
 }
 
 // NewMsgpackDecoder returns a new Decoder that writes to w.
-// uses json CustomStrucTag, compact floats and ints.
+// uses json CustomStructTag, compact floats and ints.
 func NewMsgpackEncoder(w io.Writer) *msgpack.Encoder {
 	enc := encPool.Get().(*msgpack.Encoder)
 	enc.Reset(w)
@@ -70,7 +70,7 @@ func NewMsgpackEncoder(w io.Writer) *msgpack.Encoder {
 }
 
 // NewMsgpackDecoder returns a new Decoder that reads from r.
-// uses json CustomStrucTag, and loose interface decoding.
+// uses json CustomStructTag, and loose interface decoding.
 func NewMsgpackDecoder(r io.Reader) *msgpack.Decoder {
 	dec := decPool.Get().(*msgpack.Decoder)
 	dec.Reset(r)

@@ -42,4 +42,11 @@ func TestLists(t *testing.T) {
 	if !Equal(exp, ll.Slice()) {
 		t.Fatal("exp != ll", exp, ll)
 	}
+
+	it := l.Iter()
+	for v, i := it.Value(), 0; it.Next(); v, i = it.Value(), i+1 {
+		if v != exp[i] {
+			t.Fatal("v != exp[i]", v, exp[i])
+		}
+	}
 }

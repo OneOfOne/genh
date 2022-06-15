@@ -102,15 +102,11 @@ func (l *List[T]) Prepend(v T) {
 	l.head = n
 }
 
-func (l List[T]) Iter() func() (v T, ok bool) {
-	n := l.head
-
-	return func() (v T, ok bool) {
-		if ok = n != nil; ok {
-			v, n = n.v, n.next
-		}
-		return
-	}
+// Iter is a c++-style iterator:
+// it := l.Iter()
+// for v := it.Value(); it.Next(); v = it.Value()) {}
+func (l List[T]) Iter() *ListIterator[T] {
+	return &ListIterator[T]{n: l.head}
 }
 
 func (l List[T]) ForEachPtr(fn func(v *T) bool) {
@@ -140,16 +136,6 @@ func (l List[T]) ForEach(fn func(v T) bool) {
 		if !fn(n.v) {
 			break
 		}
-	}
-}
-
-func (l List[T]) IterPtr() func() (v *T, ok bool) {
-	n := l.head
-	return func() (v *T, ok bool) {
-		if ok = n != nil; ok {
-			v, n = &n.v, n.next
-		}
-		return
 	}
 }
 
@@ -241,4 +227,38 @@ func (l *List[T]) DecodeMsgpack(dec *msgpack.Decoder) (err error) {
 		l.pushNode(n)
 	}
 	return
+}
+
+type ListIterator[T any] struct { // i hate how much this feels like java/c++
+	n       *listNode[T]
+	started bool
+}
+
+func (it *ListIterator[T]) Insert() (v T) {
+	it.n.next = &listNode[T]{v: v, next: it.n.next}
+	return
+}
+
+func (it *ListIterator[T]) Value() (v T) {
+	if it.n != nil {
+		v = it.n.v
+	}
+	return
+}
+
+func (it *ListIterator[T]) ValuePtr() (v *T) {
+	if it.n != nil {
+		v = &it.n.v
+	}
+	return
+}
+
+func (it *ListIterator[T]) Next() bool {
+	if it.started && it.n != nil {
+		it.n = it.n.next
+	} else if it.n != nil {
+		it.n, it.started = it.n.next, true
+	}
+
+	return it.n != nil
 }
