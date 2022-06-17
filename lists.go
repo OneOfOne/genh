@@ -120,8 +120,7 @@ func (l List[T]) Append(vs ...T) List[T] {
 }
 
 func (l *List[T]) pushNode(n *listNode[T]) {
-	l.len++
-	if l.head == nil {
+	if l.len++; l.head == nil {
 		l.head, l.tail = n, n
 		return
 	}
@@ -132,8 +131,7 @@ func (l *List[T]) pushNode(n *listNode[T]) {
 
 func (l *List[T]) Prepend(v T) {
 	n := &listNode[T]{v: v}
-	l.len++
-	if l.head == nil {
+	if l.len++; l.head == nil {
 		l.head, l.tail = n, n
 		return
 	}
@@ -145,16 +143,8 @@ func (l *List[T]) Prepend(v T) {
 // Iter is a c++-style iterator:
 // it := l.Iter()
 // for v := it.Value(); it.Next(); v = it.Value()) {}
-func (l List[T]) Iter() *ListIterator[T] {
-	return &ListIterator[T]{n: l.head}
-}
-
-func (l List[T]) ForEachPtr(fn func(v *T) bool) {
-	for n := l.head; n != nil; n = n.next {
-		if !fn(&n.v) {
-			break
-		}
-	}
+func (l *List[T]) Iter() *ListIterator[T] {
+	return &ListIterator[T]{l: l, n: l.head}
 }
 
 func (l List[T]) IterChan(cap int) <-chan T {
@@ -179,6 +169,14 @@ func (l List[T]) ForEach(fn func(v T) bool) {
 	}
 }
 
+func (l List[T]) ForEachPtr(fn func(v *T) bool) {
+	for n := l.head; n != nil; n = n.next {
+		if !fn(&n.v) {
+			break
+		}
+	}
+}
+
 func (l List[T]) Slice() (out []T) {
 	if l.head == nil {
 		return
@@ -187,17 +185,6 @@ func (l List[T]) Slice() (out []T) {
 	out = make([]T, 0, l.len)
 	for n := l.head; n != nil; n = n.next {
 		out = append(out, n.v)
-	}
-	return
-}
-
-func (l List[T]) SlicePtr() (out []*T) {
-	if l.head == nil {
-		return
-	}
-	out = make([]*T, 0, l.len)
-	for n := l.head; n != nil; n = n.next {
-		out = append(out, &n.v)
 	}
 	return
 }
@@ -270,13 +257,30 @@ func (l *List[T]) DecodeMsgpack(dec *msgpack.Decoder) (err error) {
 }
 
 type ListIterator[T any] struct { // i hate how much this feels like java/c++
-	n *listNode[T]
+	l    *List[T]
+	n    *listNode[T]
+	prev *listNode[T]
 }
 
 func (it *ListIterator[T]) Next() (v T, ok bool) {
 	if ok = it.n != nil; !ok {
 		return
 	}
+	it.prev = it.n
 	v, it.n = it.n.v, it.n.next
 	return
+}
+
+func (it *ListIterator[T]) Set(v T) {
+	it.prev.v = v
+}
+
+func (it *ListIterator[T]) Delete() {
+	it.l.len--
+	if it.l.head == it.prev {
+		it.l.head = it.n
+	} else {
+		it.prev.next = it.n.next
+		it.prev.v = it.n.v
+	}
 }
