@@ -12,7 +12,7 @@ package genh
 // Otherwise, the elements are compared in increasing index order, and the
 // comparison stops at the first unequal pair.
 // Floating point NaNs are not considered equal.
-func Equal[E comparable](s1, s2 []E) bool {
+func Equal[S ~[]E, E comparable](s1, s2 S) bool {
 	if len(s1) != len(s2) {
 		return false
 	}
@@ -29,7 +29,7 @@ func Equal[E comparable](s1, s2 []E) bool {
 // EqualFunc returns false. Otherwise, the elements are compared in
 // increasing index order, and the comparison stops at the first index
 // for which eq returns false.
-func EqualFunc[E1, E2 any](s1 []E1, s2 []E2, eq func(E1, E2) bool) bool {
+func EqualFunc[S1 ~[]E1, S2 ~[]E2, E1, E2 any](s1 S1, s2 S2, eq func(E1, E2) bool) bool {
 	if len(s1) != len(s2) {
 		return false
 	}
@@ -50,7 +50,7 @@ func EqualFunc[E1, E2 any](s1 []E1, s2 []E2, eq func(E1, E2) bool) bool {
 // considered less than the longer one.
 // The result is 0 if s1 == s2, -1 if s1 < s2, and +1 if s1 > s2.
 // Comparisons involving floating point NaNs are ignored.
-func Compare[E Ordered](s1, s2 []E) int {
+func Compare[S ~[]E, E Ordered](s1, s2 S) int {
 	s2len := len(s2)
 	for i, v1 := range s1 {
 		if i >= s2len {
@@ -77,7 +77,7 @@ func Compare[E Ordered](s1, s2 []E) int {
 // The result is the first non-zero result of cmp; if cmp always
 // returns 0 the result is 0 if len(s1) == len(s2), -1 if len(s1) < len(s2),
 // and +1 if len(s1) > len(s2).
-func CompareFunc[E1, E2 any](s1 []E1, s2 []E2, cmp func(E1, E2) int) int {
+func CompareFunc[S1 ~[]E1, S2 ~[]E2, E1, E2 any](s1 S1, s2 S2, cmp func(E1, E2) int) int {
 	s2len := len(s2)
 	for i, v1 := range s1 {
 		if i >= s2len {
@@ -96,7 +96,7 @@ func CompareFunc[E1, E2 any](s1 []E1, s2 []E2, cmp func(E1, E2) int) int {
 
 // Index returns the index of the first occurrence of v in s,
 // or -1 if not present.
-func Index[E comparable](s []E, v E) int {
+func Index[S ~[]E, E comparable](s S, v E) int {
 	for i, vs := range s {
 		if v == vs {
 			return i
@@ -107,7 +107,7 @@ func Index[E comparable](s []E, v E) int {
 
 // IndexFunc returns the first index i satisfying f(s[i]),
 // or -1 if none do.
-func IndexFunc[E any](s []E, f func(E) bool) int {
+func IndexFunc[S ~[]E, E any](s S, f func(E) bool) int {
 	for i, v := range s {
 		if f(v) {
 			return i
@@ -117,12 +117,12 @@ func IndexFunc[E any](s []E, f func(E) bool) int {
 }
 
 // Contains reports whether v is present in s.
-func Contains[E comparable](s []E, v E) bool {
+func Contains[S ~[]E, E comparable](s S, v E) bool {
 	return Index(s, v) > -1
 }
 
 // ContainsFunc reports whether f(v) is present in s.
-func ContainsFunc[E any](s []E, f func(E) bool) bool {
+func ContainsFunc[S ~[]E, E any](s S, f func(E) bool) bool {
 	return IndexFunc(s, f) > -1
 }
 

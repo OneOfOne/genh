@@ -2,6 +2,9 @@ package genh
 
 import (
 	"encoding/json"
+	"log"
+	"math/rand"
+	"sort"
 	"testing"
 )
 
@@ -44,10 +47,38 @@ func TestLists(t *testing.T) {
 	}
 
 	it := l.Iter()
-	for v, i := it.Value(), 0; it.Next(); v, i = it.Value(), i+1 {
-		t.Log(v, exp[i], i)
+	i := 0
+	for v, ok := it.Next(); ok; v, ok = it.Next() {
 		if v != exp[i] {
 			t.Fatal("v != exp[i]", v, exp[i])
 		}
+		i++
 	}
+
+	lls := l.ListAt(5, -1)
+	if !Equal(lls.Slice(), exp[5:]) || lls.Len() != 5 {
+		t.Fatal("exp != ll", exp[5:], lls, lls.Len())
+	}
+}
+
+func TestListSort(t *testing.T) {
+	log.SetFlags(0)
+	var l List[int]
+	var nums []int
+	for i := 0; i < 25; i++ {
+		nums = append(nums, rand.Int()%100)
+	}
+
+	for _, n := range nums {
+		l.PushSort(n, func(a, b int) bool { return a >= b })
+	}
+
+	sort.Sort(sort.Reverse(sort.IntSlice(nums)))
+	if !Equal(nums, l.Slice()) {
+		t.Log(nums)
+		t.Log(l.Slice())
+		t.Fatal("neq")
+	}
+
+	t.Log(l.Slice())
 }

@@ -40,15 +40,34 @@ type List[T any] struct {
 
 func (l List[T]) Len() int { return l.len }
 
-func (l List[T]) get(idx int) *listNode[T] {
-	if idx > l.len-1 || idx < 0 {
+func (l List[T]) get(idx int) (n *listNode[T]) {
+	if idx >= l.len || idx < 0 {
 		panic("index out of range")
 	}
-	n := l.head
+
+	if idx == l.len-1 {
+		return l.tail
+	}
+
+	n = l.head
 	for i := 0; i < idx; i++ {
 		n = n.next
 	}
-	return n
+	return
+}
+
+func (l List[T]) ListAt(start, end int) List[T] {
+	hn := l.get(start)
+	if end < start {
+		end = l.len - 1
+	}
+	tn := l.get(end)
+
+	return List[T]{
+		head: hn,
+		tail: tn,
+		len:  end - start + 1,
+	}
 }
 
 func (l *List[T]) Set(idx int, v T) {
@@ -65,17 +84,38 @@ func (l List[T]) GetPtr(idx int) *T {
 	return &n.v
 }
 
-func (l *List[T]) Push(v T) {
-	l.pushNode(&listNode[T]{v: v})
-}
+func (l *List[T]) Push(vs ...T) {
+	if len(vs) == 1 {
+		l.pushNode(&listNode[T]{v: vs[0]})
+		return
+	}
 
-func (l List[T]) Append(vs ...T) List[T] {
 	nodes := make([]listNode[T], len(vs))
 	for i, v := range vs {
 		n := &nodes[i]
 		n.v = v
 		l.pushNode(n)
 	}
+}
+
+func (l *List[T]) PushSort(v T, lessFn func(a, b T) bool) {
+	nn := &listNode[T]{v: v}
+	if l.tail == nil || !lessFn(v, l.tail.v) {
+		l.pushNode(nn)
+		return
+	}
+
+	for n := &l.head; *n != nil; n = &(*n).next {
+		if np := *n; lessFn(v, np.v) {
+			nn.next = np
+			*n = nn
+			return
+		}
+	}
+}
+
+func (l List[T]) Append(vs ...T) List[T] {
+	l.Push(vs...)
 	return l
 }
 
@@ -218,13 +258,13 @@ func (l *List[T]) DecodeMsgpack(dec *msgpack.Decoder) (err error) {
 	if n, err = dec.DecodeArrayLen(); err != nil {
 		return
 	}
-	nodes := make([]listNode[T], n)
+
 	for i := 0; i < n; i++ {
-		n := &nodes[i]
+		var n listNode[T]
 		if err = dec.Decode(&n.v); err != nil {
 			return
 		}
-		l.pushNode(n)
+		l.pushNode(&n)
 	}
 	return
 }
@@ -233,26 +273,10 @@ type ListIterator[T any] struct { // i hate how much this feels like java/c++
 	n *listNode[T]
 }
 
-func (it *ListIterator[T]) Value() (v T) {
-	if it.n != nil {
-		v = it.n.v
+func (it *ListIterator[T]) Next() (v T, ok bool) {
+	if ok = it.n != nil; !ok {
+		return
 	}
+	v, it.n = it.n.v, it.n.next
 	return
-}
-
-func (it *ListIterator[T]) ValuePtr() (v *T) {
-	if it.n != nil {
-		v = &it.n.v
-	}
-	return
-}
-
-func (it *ListIterator[T]) Next() bool {
-	if it.n == nil {
-		return false
-	}
-	if it.n != nil {
-		it.n = it.n.next
-	}
-	return true
 }
