@@ -28,14 +28,19 @@ func ClosedChan[T any]() chan T {
 	return ch
 }
 
-func Chan[T any](cap int) (ch <-chan T, pushFn func(T) bool, closeFn func()) {
+func SafeChan[T any](cap int) (ch <-chan T, pushFn func(T) bool, closeFn func()) {
 	var closed AtomicInt32
 	done := make(chan struct{})
 	rch := make(chan T, cap)
 	pushFn = func(v T) bool {
+		if closed.Load() > 0 {
+			return false
+		}
 		select {
 		case <-done:
-			close(rch)
+			if closed.CompareAndSwap(1, 2) {
+				close(rch)
+			}
 			return false
 		case rch <- v:
 			return true

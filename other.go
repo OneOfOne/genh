@@ -50,3 +50,22 @@ func FirstNonZero[T any](args ...T) T {
 	}
 	return args[0]
 }
+
+func FirstNonZeroPtr[T any](args ...*T) *T {
+	for _, arg := range args {
+		if arg != nil {
+			return arg
+		}
+	}
+	return nil
+}
+
+func FirstNonZeroCmp[T comparable](args ...T) T {
+	var zero T
+	for _, arg := range args {
+		if arg != zero {
+			return arg
+		}
+	}
+	return zero
+}
