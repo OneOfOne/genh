@@ -44,7 +44,7 @@ func IffFn[T any](cond bool, a, b func() T) T {
 
 func FirstNonZero[T any](args ...T) T {
 	for _, arg := range args {
-		if !reflect.ValueOf(arg).IsZero() {
+		if v := reflect.ValueOf(arg); v.IsValid() && !v.IsZero() {
 			return arg
 		}
 	}
