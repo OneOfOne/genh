@@ -39,3 +39,13 @@ func IffFn[T any](cond bool, a, b func() T) T {
 	}
 	return b()
 }
+
+func FirstNonZero[T comparable](args ...T) T {
+	var zero T
+	for _, arg := range args {
+		if arg != zero {
+			return arg
+		}
+	}
+	return args[0]
+}
