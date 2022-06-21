@@ -58,14 +58,19 @@ func (l List[T]) get(idx int) (n *listNode[T]) {
 
 func (l List[T]) ListAt(start, end int) List[T] {
 	hn := l.get(start)
-	if end < start {
+	if end >= l.len {
 		end = l.len - 1
 	}
-	tn := l.get(end)
 
+	if end < 0 {
+		end = l.len + end
+	}
+
+	tn := *l.get(end)
+	tn.next = nil
 	return List[T]{
 		head: hn,
-		tail: tn,
+		tail: &tn,
 		len:  end - start + 1,
 	}
 }

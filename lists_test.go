@@ -50,7 +50,11 @@ func TestLists(t *testing.T) {
 		t.Fatal("exp != ll", exp, ll)
 	}
 
-	lls := l.ListAt(5, -1)
+	lls := l.ListAt(5, 10)
+	if !Equal(lls.Slice(), exp[5:]) || lls.Len() != 5 {
+		t.Fatal("exp != ll", exp[5:], lls.Slice(), lls.Len())
+	}
+	lls = l.ListAt(5, -1)
 	if !Equal(lls.Slice(), exp[5:]) || lls.Len() != 5 {
 		t.Fatal("exp != ll", exp[5:], lls.Slice(), lls.Len())
 	}
