@@ -1,5 +1,7 @@
 package genh
 
+import "reflect"
+
 // ValuesToPtrs converts a slice of values to a slice of pointers
 // optionally copying the values instead of pointing to them in the original slice.
 func ValuesToPtrs[T any](vals []T, copy bool) []*T {
@@ -40,10 +42,9 @@ func IffFn[T any](cond bool, a, b func() T) T {
 	return b()
 }
 
-func FirstNonZero[T comparable](args ...T) T {
-	var zero T
+func FirstNonZero[T any](args ...T) T {
 	for _, arg := range args {
-		if arg != zero {
+		if !reflect.ValueOf(arg).IsZero() {
 			return arg
 		}
 	}
