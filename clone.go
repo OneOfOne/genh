@@ -34,6 +34,10 @@ func ReflectClone(dst, src reflect.Value) {
 		log.Panicf("type mismatch %v %v", styp, dst.Type())
 	}
 
+	if src.Kind() == reflect.Interface {
+		src = src.Elem()
+	}
+
 	switch src.Kind() {
 	case reflect.Slice:
 		if src.IsNil() {
@@ -72,14 +76,6 @@ func ReflectClone(dst, src reflect.Value) {
 			return
 		}
 		v := reflect.New(styp).Elem()
-		ReflectClone(v, src.Elem())
-		dst.Set(v)
-
-	case reflect.Interface:
-		if src.IsNil() {
-			return
-		}
-		v := reflect.New(src.Elem().Type()).Elem()
 		ReflectClone(v, src.Elem())
 		dst.Set(v)
 
