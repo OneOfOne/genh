@@ -34,8 +34,10 @@ func ListOf[T any](vs ...T) (l List[T]) {
 }
 
 type List[T any] struct {
-	head, tail *listNode[T]
-	len        int
+	head *listNode[T]
+	tail *listNode[T]
+	clip *listNode[T]
+	len  int
 }
 
 func (l List[T]) Len() int { return l.len }
@@ -90,6 +92,7 @@ func (l List[T]) GetPtr(idx int) *T {
 }
 
 func (l *List[T]) Push(vs ...T) {
+	l.len += len(vs)
 	if len(vs) == 1 {
 		l.pushNode(&listNode[T]{v: vs[0]})
 		return
@@ -110,7 +113,7 @@ func (l *List[T]) PushSort(v T, lessFn func(a, b T) bool) {
 		return
 	}
 
-	for n := &l.head; *n != nil; n = &(*n).next {
+	for n := &l.head; *n != l.clip; n = &(*n).next {
 		if np := *n; lessFn(v, np.v) {
 			nn.next = np
 			*n = nn
@@ -125,13 +128,27 @@ func (l List[T]) Append(vs ...T) List[T] {
 }
 
 func (l *List[T]) pushNode(n *listNode[T]) {
-	if l.len++; l.head == nil {
+	if l.head == nil {
 		l.head, l.tail = n, n
 		return
 	}
 
+	if l.clip == l.tail {
+		tn := *l.tail
+		l.tail = &tn
+	}
 	l.tail.next = n
 	l.tail = n
+}
+
+func (l List[T]) nextNode(n *listNode[T]) *listNode[T] {
+	if l.clip == n {
+		if l.clip == l.tail {
+			return nil
+		}
+		return l.tail
+	}
+	return n.next
 }
 
 func (l *List[T]) Prepend(v T) {
@@ -143,6 +160,40 @@ func (l *List[T]) Prepend(v T) {
 
 	n.next = l.head
 	l.head = n
+}
+
+func (l List[T]) Slice() (out []T) {
+	if l.head == nil {
+		return
+	}
+
+	out = make([]T, 0, l.len)
+	ln := l.len
+	for n := l.head; ln > 0; n, ln = l.nextNode(n), ln-1 {
+		out = append(out, n.v)
+	}
+	return
+}
+
+func (l List[T]) count() (out int) {
+	if l.head == nil {
+		return
+	}
+
+	ln := l.len
+	for n := l.head; ln > 0; n, ln = l.nextNode(n), ln-1 {
+		out++
+	}
+	return
+}
+
+func (l List[T]) Clip() List[T] {
+	l.clip = l.tail
+	return l
+}
+
+func (l *List[T]) Clear() {
+	*l = List[T]{}
 }
 
 // Iter is a c++-style iterator:
@@ -157,9 +208,10 @@ func (l List[T]) IterChan(cap int) <-chan T {
 		cap = 1
 	}
 	ch := make(chan T, cap)
+	ln := l.len
 	go func() {
 		defer close(ch)
-		for n := l.head; n != nil; n = n.next {
+		for n := l.head; ln > 0; n, ln = l.nextNode(n), ln-1 {
 			ch <- n.v
 		}
 	}()
@@ -167,7 +219,8 @@ func (l List[T]) IterChan(cap int) <-chan T {
 }
 
 func (l List[T]) ForEach(fn func(v T) bool) {
-	for n := l.head; n != nil; n = n.next {
+	ln := l.len
+	for n := l.head; ln > 0; n, ln = l.nextNode(n), ln-1 {
 		if !fn(n.v) {
 			break
 		}
@@ -175,35 +228,20 @@ func (l List[T]) ForEach(fn func(v T) bool) {
 }
 
 func (l List[T]) ForEachPtr(fn func(v *T) bool) {
-	for n := l.head; n != nil; n = n.next {
+	ln := l.len
+	for n := l.head; ln > 0; n, ln = l.nextNode(n), ln-1 {
 		if !fn(&n.v) {
 			break
 		}
 	}
 }
 
-func (l List[T]) Slice() (out []T) {
-	if l.head == nil {
-		return
-	}
-
-	out = make([]T, 0, l.len)
-	for n := l.head; n != nil; n = n.next {
-		out = append(out, n.v)
-	}
-	return
-}
-
-func (l *List[T]) Clear() {
-	l.head, l.tail = nil, nil
-	l.len = 0
-}
-
 func (l List[T]) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteByte('[')
 	enc := json.NewEncoder(&buf)
-	for n := l.head; n != nil; n = n.next {
+	ln := l.len
+	for n := l.head; ln > 0; n, ln = l.nextNode(n), ln-1 {
 		if buf.Len() > 1 {
 			buf.WriteString(",")
 		}
@@ -237,7 +275,8 @@ func (l List[T]) EncodeMsgpack(enc *msgpack.Encoder) (err error) {
 		return
 	}
 
-	for n := l.head; n != nil; n = n.next {
+	ln := l.len
+	for n := l.head; ln > 0; n, ln = l.nextNode(n), ln-1 {
 		if err = enc.Encode(n.v); err != nil {
 			return
 		}
@@ -268,7 +307,7 @@ type ListIterator[T any] struct { // i hate how much this feels like java/c++
 }
 
 func (it *ListIterator[T]) Next() (v T, ok bool) {
-	if ok = it.n != nil; !ok {
+	if ok = it.n != it.l.clip; !ok {
 		return
 	}
 	it.prev = it.n

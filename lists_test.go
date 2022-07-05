@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"sort"
+	"sync"
 	"testing"
 )
 
@@ -113,4 +114,59 @@ func TestListSort(t *testing.T) {
 	}
 
 	t.Log(l.Slice())
+}
+
+func TestListClip(t *testing.T) {
+	var l, cl, cl2 List[int]
+	var nums []int
+	for i := 0; i < 25; i++ {
+		nums = append(nums, rand.Int()%100)
+	}
+
+	for i, n := range nums {
+		if i == 10 {
+			cl = l.Clip()
+		}
+		if i == 20 {
+			cl2 = l.Clip()
+		}
+		l.Push(n)
+	}
+
+	if l.Len() != 25 || cap(l.Slice()) != l.Len() {
+		t.Fatalf("unexpected, should have been 10, got %d %v", cap(l.Slice()), l.Slice())
+	}
+	cl.Push(99)
+	if cl.Len() != 11 || cap(cl.Slice()) != cl.Len() {
+		t.Fatalf("unexpected, should have been 11, got %d %v %d", cap(cl.Slice()), cl.Slice(), cl.count())
+	}
+
+	if cl2.Len() != 20 || cap(cl2.Slice()) != cl2.Len() {
+		t.Fatalf("unexpected, should have been 20, got %d %v %d", cap(cl2.Slice()), cl2.Slice(), cl2.count())
+	}
+
+	for i, v := range l.Slice() {
+		if v != nums[i] {
+			t.Fatalf("unexpected, should have been %d, got %d", nums[i], v)
+		}
+	}
+
+	// run with race
+	var wg sync.WaitGroup
+	var mux sync.Mutex
+	for i := 0; i < 10000; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			mux.Lock()
+			l.Push(i)
+			cl := l.Clip()
+			mux.Unlock()
+			_ = cl.Slice()
+		}(i)
+	}
+	wg.Wait()
+	if l.Len() != 10025 || cap(l.Slice()) != l.Len() {
+		t.Fatalf("unexpected, should have been 20, got %d %d", cap(l.Slice()), l.count())
+	}
 }
