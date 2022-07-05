@@ -122,6 +122,8 @@ func (l *List[T]) Push(vs ...T) {
 	}
 }
 
+// PushSort pushes the item in the order returned by lessFn
+// PushSort does *not* work with Clip, use Clone if you really have to.
 func (l *List[T]) PushSort(v T, lessFn func(a, b T) bool) {
 	l.len++
 	nn := &listNode[T]{v: v}
@@ -195,9 +197,16 @@ func (l List[T]) Slice() (out []T) {
 	}
 
 	out = make([]T, 0, l.len)
-	ln := l.len
-	for n := l.head; ln > 0; n, ln = l.nextNode(n), ln-1 {
+	for n := l.head; n != nil; n = l.nextNode(n) {
 		out = append(out, n.v)
+	}
+	return
+}
+
+func (l List[T]) Clone() (out List[T]) {
+	out.len = l.len
+	for n := l.head; n != nil; n = l.nextNode(n) {
+		out.pushNode(&listNode[T]{v: n.v})
 	}
 	return
 }
@@ -207,8 +216,7 @@ func (l List[T]) count() (out int) {
 		return
 	}
 
-	ln := l.len
-	for n := l.head; ln > 0; n, ln = l.nextNode(n), ln-1 {
+	for n := l.head; n != nil; n = l.nextNode(n) {
 		out++
 	}
 	return
@@ -235,10 +243,9 @@ func (l List[T]) IterChan(cap int) <-chan T {
 		cap = 1
 	}
 	ch := make(chan T, cap)
-	ln := l.len
 	go func() {
 		defer close(ch)
-		for n := l.head; ln > 0; n, ln = l.nextNode(n), ln-1 {
+		for n := l.head; n != nil; n = l.nextNode(n) {
 			ch <- n.v
 		}
 	}()
@@ -246,8 +253,7 @@ func (l List[T]) IterChan(cap int) <-chan T {
 }
 
 func (l List[T]) ForEach(fn func(v T) bool) {
-	ln := l.len
-	for n := l.head; ln > 0; n, ln = l.nextNode(n), ln-1 {
+	for n := l.head; n != nil; n = l.nextNode(n) {
 		if !fn(n.v) {
 			break
 		}
@@ -255,8 +261,7 @@ func (l List[T]) ForEach(fn func(v T) bool) {
 }
 
 func (l List[T]) ForEachPtr(fn func(v *T) bool) {
-	ln := l.len
-	for n := l.head; ln > 0; n, ln = l.nextNode(n), ln-1 {
+	for n := l.head; n != nil; n = l.nextNode(n) {
 		if !fn(&n.v) {
 			break
 		}
@@ -267,8 +272,7 @@ func (l List[T]) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteByte('[')
 	enc := json.NewEncoder(&buf)
-	ln := l.len
-	for n := l.head; ln > 0; n, ln = l.nextNode(n), ln-1 {
+	for n := l.head; n != nil; n = l.nextNode(n) {
 		if buf.Len() > 1 {
 			buf.WriteString(",")
 		}
@@ -302,8 +306,7 @@ func (l List[T]) EncodeMsgpack(enc *msgpack.Encoder) (err error) {
 		return
 	}
 
-	ln := l.len
-	for n := l.head; ln > 0; n, ln = l.nextNode(n), ln-1 {
+	for n := l.head; n != nil; n = l.nextNode(n) {
 		if err = enc.Encode(n.v); err != nil {
 			return
 		}
