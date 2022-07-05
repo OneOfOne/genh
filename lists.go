@@ -307,11 +307,11 @@ type ListIterator[T any] struct { // i hate how much this feels like java/c++
 }
 
 func (it *ListIterator[T]) Next() (v T, ok bool) {
-	if ok = it.n != it.l.clip; !ok {
+	if ok = it.n != nil; !ok {
 		return
 	}
 	it.prev = it.n
-	v, it.n = it.n.v, it.n.next
+	v, it.n = it.n.v, it.l.nextNode(it.n)
 	return
 }
 

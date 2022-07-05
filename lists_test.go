@@ -145,6 +145,14 @@ func TestListClip(t *testing.T) {
 		t.Fatalf("unexpected, should have been 20, got %d %v %d", cap(cl2.Slice()), cl2.Slice(), cl2.count())
 	}
 
+	i := 0
+	it := cl2.Iter()
+	for v, ok := it.Next(); ok; v, ok = it.Next() {
+		if v != nums[i] {
+			t.Fatalf("unexpected, should have been %d, got %d", nums[i], v)
+		}
+		i++
+	}
 	for i, v := range l.Slice() {
 		if v != nums[i] {
 			t.Fatalf("unexpected, should have been %d, got %d", nums[i], v)
