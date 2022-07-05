@@ -40,7 +40,23 @@ type List[T any] struct {
 	len  int
 }
 
-func (l List[T]) Len() int { return l.len }
+func (l List[T]) Len() int {
+	return l.len
+}
+
+func (l List[T]) Head() (v T) {
+	if l.head != nil {
+		v = l.head.v
+	}
+	return
+}
+
+func (l List[T]) Tail() (v T) {
+	if l.tail != nil {
+		v = l.tail.v
+	}
+	return
+}
 
 func (l List[T]) get(idx int) (n *listNode[T]) {
 	if idx >= l.len || idx < 0 {
@@ -59,7 +75,7 @@ func (l List[T]) get(idx int) (n *listNode[T]) {
 }
 
 func (l List[T]) ListAt(start, end int) List[T] {
-	hn := l.get(start)
+	h := l.get(start)
 	if end >= l.len {
 		end = l.len - 1
 	}
@@ -68,13 +84,13 @@ func (l List[T]) ListAt(start, end int) List[T] {
 		end = l.len + end
 	}
 
-	tn := *l.get(end)
-	tn.next = nil
-	return List[T]{
-		head: hn,
-		tail: &tn,
+	t := l.get(end)
+	nl := List[T]{
+		head: h,
+		tail: t,
 		len:  end - start + 1,
 	}
+	return nl.Clip()
 }
 
 func (l *List[T]) Set(idx int, v T) {
@@ -107,13 +123,14 @@ func (l *List[T]) Push(vs ...T) {
 }
 
 func (l *List[T]) PushSort(v T, lessFn func(a, b T) bool) {
+	l.len++
 	nn := &listNode[T]{v: v}
 	if l.tail == nil || !lessFn(v, l.tail.v) {
 		l.pushNode(nn)
 		return
 	}
 
-	for n := &l.head; *n != l.clip; n = &(*n).next {
+	for n := &l.head; *n != nil; n = l.nextNodePtr(*n) {
 		if np := *n; lessFn(v, np.v) {
 			nn.next = np
 			*n = nn
@@ -149,6 +166,16 @@ func (l List[T]) nextNode(n *listNode[T]) *listNode[T] {
 		return l.tail
 	}
 	return n.next
+}
+
+func (l List[T]) nextNodePtr(n *listNode[T]) **listNode[T] {
+	if l.clip == n {
+		if l.clip == l.tail {
+			return nil
+		}
+		return &l.tail
+	}
+	return &n.next
 }
 
 func (l *List[T]) Prepend(v T) {

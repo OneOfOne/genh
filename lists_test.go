@@ -133,15 +133,15 @@ func TestListClip(t *testing.T) {
 		l.Push(n)
 	}
 
-	if l.Len() != 25 || cap(l.Slice()) != l.Len() {
+	if l.Len() != 25 || l.Len() != l.count() || cap(l.Slice()) != l.Len() {
 		t.Fatalf("unexpected, should have been 10, got %d %v", cap(l.Slice()), l.Slice())
 	}
 	cl.Push(99)
-	if cl.Len() != 11 || cap(cl.Slice()) != cl.Len() {
+	if cl.Len() != 11 || cl.Len() != cl.count() || cap(cl.Slice()) != cl.Len() {
 		t.Fatalf("unexpected, should have been 11, got %d %v %d", cap(cl.Slice()), cl.Slice(), cl.count())
 	}
 
-	if cl2.Len() != 20 || cap(cl2.Slice()) != cl2.Len() {
+	if cl2.Len() != 20 || cl2.Len() != cl2.count() || cap(cl2.Slice()) != cl2.Len() {
 		t.Fatalf("unexpected, should have been 20, got %d %v %d", cap(cl2.Slice()), cl2.Slice(), cl2.count())
 	}
 
