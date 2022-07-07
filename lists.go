@@ -358,3 +358,12 @@ func (it *ListIterator[T]) Delete() {
 		it.prev.v = it.n.v
 	}
 }
+
+func ListToMap[K comparable, V any](l List[V], keyFn func(v V) K) map[K]V {
+	out := make(map[K]V, l.Len())
+	it := l.Iter()
+	for v, ok := it.Next(); ok; v, ok = it.Next() {
+		out[keyFn(v)] = v
+	}
+	return out
+}
