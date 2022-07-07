@@ -146,11 +146,14 @@ func TestMapDeleteFunc(t *testing.T) {
 }
 
 func TestMapFilter(t *testing.T) {
-	mc := MapClone(m1)
-	mc = MapFilter(mc, func(_ int, v int) bool { return v%2 == 0 }, false)
+	mc := MapFilter(m1, func(_ int, v int) bool { return v%2 == 0 }, false)
 	for _, v := range mc {
 		if v%2 != 0 {
 			t.Fatalf("bad v %d", v)
 		}
+	}
+
+	if MapEqual(mc, m1) {
+		t.Fatal("bad inplace, bad")
 	}
 }
