@@ -82,11 +82,28 @@ func MapCopy[M ~map[K]V, K comparable, V any](dst, src M) {
 	}
 }
 
-// DeleteFunc deletes any key/value pairs from m for which del returns true.
+// MapDeleteFunc deletes any key/value pairs from m for which del returns true.
 func MapDeleteFunc[M ~map[K]V, K comparable, V any](m M, del func(K, V) bool) {
 	for k, v := range m {
 		if del(k, v) {
 			delete(m, k)
 		}
 	}
+}
+
+// MapFilter
+func MapFilter[M ~map[K]V, K comparable, V any](m M, fn func(K, V) bool, inplace bool) (out M) {
+	if out = m; !inplace {
+		out = M{}
+	}
+	for k, v := range m {
+		if inplace {
+			if fn(k, v) {
+				delete(out, k)
+			}
+		} else if fn(k, v) {
+			out[k] = v
+		}
+	}
+	return
 }
