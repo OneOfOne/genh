@@ -93,17 +93,21 @@ func MapDeleteFunc[M ~map[K]V, K comparable, V any](m M, del func(K, V) bool) {
 
 // MapFilter
 func MapFilter[M ~map[K]V, K comparable, V any](m M, fn func(K, V) bool, inplace bool) (out M) {
-	if out = m; !inplace {
-		out = M{}
-	}
-	for k, v := range m {
-		if inplace {
-			if fn(k, v) {
+	if inplace {
+		out = m
+		for k, v := range m {
+			if !fn(k, v) {
 				delete(out, k)
 			}
-		} else if fn(k, v) {
-			out[k] = v
+		}
+	} else {
+		out = M{}
+		for k, v := range m {
+			if fn(k, v) {
+				out[k] = v
+			}
 		}
 	}
+
 	return
 }
