@@ -40,7 +40,7 @@ func TestClone(t *testing.T) {
 		x: n,
 	}
 
-	dst := Clone(src)
+	dst := Clone(src, true)
 
 	if dst == src {
 		t.Fatal("cp == s")
@@ -48,6 +48,14 @@ func TestClone(t *testing.T) {
 
 	if dst.Ptr == src.Ptr {
 		t.Fatal("cp.Ptr == s.Ptr")
+	}
+
+	if dst.PtrPtr == src.PtrPtr {
+		t.Fatal("cp.PtrPtr == s.PtrPtr")
+	}
+
+	if dst.PtrPtrPtr == src.PtrPtrPtr {
+		t.Fatal("cp.PtrPtrPtr == s.PtrPtrPtr")
 	}
 
 	if src.x != dst.x {
@@ -65,6 +73,11 @@ func TestClone(t *testing.T) {
 	if !bytes.Equal(sj, dj) {
 		t.Fatalf("!bytes.Equal(src, dst):\nsrc: %s\ndst: %s", sj, dj)
 	}
+
+	dst = Clone(src, false)
+	if dst.x == src.x {
+		t.Fatal("src.x == dst.x", src.x, dst.x)
+	}
 	t.Logf("%s", sj)
 }
 
@@ -81,10 +94,9 @@ func BenchmarkClone(b *testing.B) {
 			"x": 1, "y": 2.2,
 			"z": []int{1, 2, 3, 6, 8, 9},
 		},
-		Ptr:       pn,
-		PtrPtr:    ppn,
-		PtrPtrPtr: &ppn,
-		A:         [5]uint64{1 << 2, 1 << 4, 1 << 6, 1 << 8, 1 << 10},
+		Ptr:    pn,
+		PtrPtr: ppn,
+		A:      [5]uint64{1 << 2, 1 << 4, 1 << 6, 1 << 8, 1 << 10},
 
 		x: n,
 	}
@@ -92,7 +104,7 @@ func BenchmarkClone(b *testing.B) {
 
 	b.Run("Fn", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			cloneSink = Clone(s)
+			cloneSink = Clone(s, true)
 		}
 	})
 	b.Run("JSON", func(b *testing.B) {
