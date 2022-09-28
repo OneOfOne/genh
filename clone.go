@@ -1,7 +1,6 @@
 package genh
 
 import (
-	"log"
 	"reflect"
 )
 
@@ -28,9 +27,6 @@ func ReflectClone(dst, src reflect.Value, keepPrivateFields bool) {
 	}
 
 	styp := src.Type()
-	if styp != dst.Type() {
-		log.Panicf("type mismatch %v %v", styp, dst.Type())
-	}
 
 	if cloneVal(dst, src) {
 		return
