@@ -42,7 +42,20 @@ func ReflectClone(dst, src reflect.Value, keepPrivateFields bool) {
 
 	case reflect.Array:
 		for i := 0; i < src.Len(); i++ {
-			ReflectClone(dst.Index(i), src.Index(i), keepPrivateFields)
+			dst, src := dst.Index(i), src.Index(i)
+
+			if dst.Kind() != reflect.Interface {
+				ReflectClone(dst, src, keepPrivateFields)
+				continue
+			}
+
+			if src.Kind() == reflect.Interface {
+				src = src.Elem()
+			}
+			ndst := reflect.New(src.Type()).Elem()
+			ReflectClone(ndst, src, keepPrivateFields)
+			dst.Set(ndst)
+
 		}
 
 	case reflect.Map:
@@ -73,8 +86,9 @@ func ReflectClone(dst, src reflect.Value, keepPrivateFields bool) {
 		if src.IsNil() {
 			return
 		}
-		dst.Set(reflect.New(styp.Elem()))
-		ReflectClone(dst.Elem(), src.Elem(), keepPrivateFields)
+		ndst := reflect.New(styp.Elem())
+		ReflectClone(ndst.Elem(), src.Elem(), keepPrivateFields)
+		dst.Set(ndst)
 
 	default:
 		dst.Set(src)
@@ -100,7 +114,7 @@ func cloneVal(dst, src reflect.Value) bool {
 	}
 	src = src.Addr()
 	m := src.MethodByName("Clone")
-	if !m.IsValid() {
+	if !m.IsValid() || m.Type().Out(0) != src.Type() {
 		return false
 	}
 	v := m.Call(nil)[0]
@@ -108,6 +122,7 @@ func cloneVal(dst, src reflect.Value) bool {
 	if v.Kind() == reflect.Ptr && dst.Kind() != reflect.Ptr {
 		v = v.Elem()
 	}
+
 	dst.Set(v)
 	return true
 }

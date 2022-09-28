@@ -24,13 +24,34 @@ type cloneStruct struct {
 	C2 *cloner
 }
 
-type cloner struct {
-	A int
-}
+type (
+	cloners []Cloner[any]
+	cloner  struct {
+		A int
+	}
+)
 
 func (c cloner) Clone() *cloner {
 	log.Println("called clone")
 	return &c
+}
+
+type cloner0 struct{ int }
+
+func (c cloner0) Clone() any {
+	return c
+}
+
+func TestBug01(t *testing.T) {
+	s := cloners{cloner0{4}, &cloner0{5}}
+	m := map[any]any{
+		cloner0{4}: &cloner0{5},
+		"x":        &cloner{10},
+	}
+	c := Clone(s, true)
+	t.Log(c)
+	c2 := Clone(m, true)
+	t.Log(c2)
 }
 
 func TestClone(t *testing.T) {
