@@ -3,7 +3,6 @@ package genh
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"reflect"
 	"testing"
 )
@@ -31,9 +30,8 @@ type (
 	}
 )
 
-func (c cloner) Clone() *cloner {
-	log.Println("called clone")
-	return &c
+func (c cloner) Clone() cloner {
+	return c
 }
 
 type cloner0 struct{ int }
@@ -49,7 +47,7 @@ func TestBug01(t *testing.T) {
 		"x":        &cloner{10},
 	}
 	c := Clone(s, true)
-	t.Log(c)
+	t.Log(c, c[1])
 	c2 := Clone(m, true)
 	t.Log(c2)
 }
@@ -135,6 +133,9 @@ func BenchmarkClone(b *testing.B) {
 		A:      [5]uint64{1 << 2, 1 << 4, 1 << 6, 1 << 8, 1 << 10},
 
 		x: n,
+
+		C:  cloner{A: 420},
+		C2: &cloner{A: 420},
 	}
 	j, _ := json.Marshal(&s)
 

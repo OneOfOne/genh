@@ -109,11 +109,10 @@ func maybeCopy(src reflect.Value, copyPrivate bool) reflect.Value {
 }
 
 func cloneVal(dst, src reflect.Value) bool {
-	if !src.CanAddr() {
-		return false
-	}
-	src = src.Addr()
 	m := src.MethodByName("Clone")
+	if !m.IsValid() && src.CanAddr() {
+		m = src.Addr().MethodByName("Clone")
+	}
 	if !m.IsValid() || m.Type().Out(0) != src.Type() {
 		return false
 	}
