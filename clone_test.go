@@ -23,9 +23,16 @@ type cloneStruct struct {
 	C2 *cloner
 }
 
+func (c cloneStruct) XV() int {
+	return c.x
+}
+
 type (
-	cloners []Cloner[any]
-	cloner  struct {
+	ifaceBug interface {
+		XV() int
+	}
+	bugSlice []ifaceBug
+	cloner   struct {
 		A int
 	}
 )
@@ -41,15 +48,9 @@ func (c cloner0) Clone() any {
 }
 
 func TestBug01(t *testing.T) {
-	s := cloners{cloner0{4}, &cloner0{5}}
-	m := map[any]any{
-		cloner0{4}: &cloner0{5},
-		"x":        &cloner{10},
-	}
+	s := bugSlice{cloneStruct{x: 42}, &cloneStruct{x: 42}}
 	c := Clone(s, true)
-	t.Log(c, c[1])
-	c2 := Clone(m, true)
-	t.Log(c2)
+	t.Log(c[0].XV(), c[1].XV())
 }
 
 func TestClone(t *testing.T) {

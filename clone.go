@@ -9,9 +9,9 @@ type Cloner[T any] interface {
 }
 
 func Clone[T any](v T, keepPrivateFields bool) (cp T) {
-	// if v, ok := any(v).(Cloner[T]); ok {
-	// 	return v.Clone()
-	// }
+	if v, ok := any(v).(Cloner[T]); ok {
+		return v.Clone()
+	}
 	src, dst := reflect.ValueOf(v), reflect.ValueOf(&cp).Elem()
 	ReflectClone(dst, src, keepPrivateFields)
 	return
