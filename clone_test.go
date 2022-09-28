@@ -3,6 +3,7 @@ package genh
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 	"reflect"
 	"testing"
 )
@@ -15,10 +16,21 @@ type cloneStruct struct {
 	PtrPtrPtr ***int
 	NilPtr    *int
 
-	S string
-	X []int
-	A [5]uint64
-	x int
+	S  string
+	X  []int
+	A  [5]uint64
+	x  int
+	C  cloner
+	C2 *cloner
+}
+
+type cloner struct {
+	A int
+}
+
+func (c cloner) Clone() *cloner {
+	log.Println("called clone")
+	return &c
 }
 
 func TestClone(t *testing.T) {
@@ -38,6 +50,9 @@ func TestClone(t *testing.T) {
 		A:         [5]uint64{1 << 2, 1 << 4, 1 << 6, 1 << 8, 1 << 10},
 
 		x: n,
+
+		C:  cloner{A: 420},
+		C2: &cloner{A: 420},
 	}
 
 	dst := Clone(src, true)

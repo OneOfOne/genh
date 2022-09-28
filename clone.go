@@ -10,9 +10,9 @@ type Cloner[T any] interface {
 }
 
 func Clone[T any](v T, keepPrivateFields bool) (cp T) {
-	if v, ok := any(v).(Cloner[T]); ok {
-		return v.Clone()
-	}
+	// if v, ok := any(v).(Cloner[T]); ok {
+	// 	return v.Clone()
+	// }
 	src, dst := reflect.ValueOf(v), reflect.ValueOf(&cp).Elem()
 	ReflectClone(dst, src, keepPrivateFields)
 	return
@@ -30,6 +30,10 @@ func ReflectClone(dst, src reflect.Value, keepPrivateFields bool) {
 	styp := src.Type()
 	if styp != dst.Type() {
 		log.Panicf("type mismatch %v %v", styp, dst.Type())
+	}
+
+	if cloneVal(dst, src) {
+		return
 	}
 
 	switch styp.Kind() {
@@ -92,4 +96,22 @@ func maybeCopy(src reflect.Value, copyPrivate bool) reflect.Value {
 	default:
 		return src
 	}
+}
+
+func cloneVal(dst, src reflect.Value) bool {
+	if !src.CanAddr() {
+		return false
+	}
+	src = src.Addr()
+	m := src.MethodByName("Clone")
+	if !m.IsValid() {
+		return false
+	}
+	v := m.Call(nil)[0]
+
+	if v.Kind() == reflect.Ptr && dst.Kind() != reflect.Ptr {
+		v = v.Elem()
+	}
+	dst.Set(v)
+	return true
 }
