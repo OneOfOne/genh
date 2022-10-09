@@ -67,10 +67,26 @@ func (lm *LMultiMap[K1, K2, V]) DeleteChild(k1 K1, k2 K2) {
 	lm.mux.Unlock()
 }
 
+func (lm *LMultiMap[K1, K2, V]) DeleteGetChild(k1 K1, k2 K2) V {
+	lm.mux.Lock()
+	v := lm.m[k1][k2]
+	delete(lm.m[k1], k2)
+	lm.mux.Unlock()
+	return v
+}
+
 func (lm *LMultiMap[K1, K2, V]) Delete(k1 K1) {
 	lm.mux.Lock()
 	delete(lm.m, k1)
 	lm.mux.Unlock()
+}
+
+func (lm *LMultiMap[K1, K2, V]) DeleteGet(k1 K1) map[K2]V {
+	lm.mux.Lock()
+	v := lm.m[k1]
+	delete(lm.m, k1)
+	lm.mux.Unlock()
+	return v
 }
 
 func (lm *LMultiMap[K1, K2, V]) Keys() (keys []K1) {

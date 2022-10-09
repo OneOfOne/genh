@@ -53,6 +53,14 @@ func (lm *LMap[K, V]) Delete(k K) {
 	lm.mux.Unlock()
 }
 
+func (lm *LMap[K, V]) DeleteGet(k K) V {
+	lm.mux.Lock()
+	v := lm.m[k]
+	delete(lm.m, k)
+	lm.mux.Unlock()
+	return v
+}
+
 func (lm *LMap[K, V]) Keys() (keys []K) {
 	lm.mux.RLock()
 	keys = MapKeys(lm.m)
