@@ -3,13 +3,17 @@ package genh
 import (
 	"bytes"
 	"io"
-	"sync"
 
 	"github.com/vmihailenco/msgpack/v5"
 )
 
-var decPool = sync.Pool{
-	New: func() any {
+type (
+	MsgpackEncoder = msgpack.Encoder
+	MsgpackDecoder = msgpack.Decoder
+)
+
+var decPool = Pool[MsgpackDecoder]{
+	New: func() *MsgpackDecoder {
 		dec := msgpack.NewDecoder(nil)
 		dec.SetCustomStructTag("json")
 		dec.UseLooseInterfaceDecoding(true)
@@ -17,13 +21,13 @@ var decPool = sync.Pool{
 	},
 }
 
-func PutMsgpackDecoder(dec *msgpack.Decoder) {
+func PutMsgpackDecoder(dec *MsgpackDecoder) {
 	dec.Reset(nil)
 	decPool.Put(dec)
 }
 
-var encPool = sync.Pool{
-	New: func() any {
+var encPool = Pool[MsgpackEncoder]{
+	New: func() *MsgpackEncoder {
 		enc := msgpack.NewEncoder(nil)
 		enc.SetCustomStructTag("json")
 		enc.UseCompactFloats(true)
@@ -32,7 +36,7 @@ var encPool = sync.Pool{
 	},
 }
 
-func PutMsgpackEncoder(enc *msgpack.Encoder) {
+func PutMsgpackEncoder(enc *MsgpackEncoder) {
 	enc.Reset(nil)
 	encPool.Put(enc)
 }
@@ -47,32 +51,32 @@ func MarshalMsgpack(v any) ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-func EncodeMsgpack(w io.Writer, v any) error {
+func EncodeMsgpack(w io.Writer, vs ...any) error {
 	enc := NewMsgpackEncoder(w)
-	err := enc.Encode(v)
+	err := enc.EncodeMulti(vs...)
 	PutMsgpackEncoder(enc)
 	return err
 }
 
-func DecodeMsgpack(r io.Reader, v any) error {
+func DecodeMsgpack(r io.Reader, vs ...any) error {
 	dec := NewMsgpackDecoder(r)
-	err := dec.Decode(v)
+	err := dec.DecodeMulti(vs...)
 	PutMsgpackDecoder(dec)
 	return err
 }
 
 // NewMsgpackDecoder returns a new Decoder that writes to w.
 // uses json CustomStructTag, compact floats and ints.
-func NewMsgpackEncoder(w io.Writer) *msgpack.Encoder {
-	enc := encPool.Get().(*msgpack.Encoder)
+func NewMsgpackEncoder(w io.Writer) *MsgpackEncoder {
+	enc := encPool.Get()
 	enc.Reset(w)
 	return enc
 }
 
 // NewMsgpackDecoder returns a new Decoder that reads from r.
 // uses json CustomStructTag, and loose interface decoding.
-func NewMsgpackDecoder(r io.Reader) *msgpack.Decoder {
-	dec := decPool.Get().(*msgpack.Decoder)
+func NewMsgpackDecoder(r io.Reader) *MsgpackDecoder {
+	dec := decPool.Get()
 	dec.Reset(r)
 	return dec
 }
