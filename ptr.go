@@ -4,6 +4,17 @@ import (
 	"encoding/json"
 )
 
+func Ptr[T any](v T) *T {
+	return &v
+}
+
+func PtrVal[T any](v *T) (_ T) {
+	if v == nil {
+		return
+	}
+	return *v
+}
+
 func Zero[T any]() (_ T) { return }
 
 type PtrTo[T any] struct {
