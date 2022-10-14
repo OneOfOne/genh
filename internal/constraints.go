@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package genh
+package internal
 
 // Signed is a constraint that permits any signed integer type.
 // If future releases of Go add new predeclared signed integer types,
@@ -48,5 +48,9 @@ type Ordered interface {
 }
 
 type DecoderType interface {
+	Decode(v any) error
+}
+
+type EncoderType interface {
 	Decode(v any) error
 }

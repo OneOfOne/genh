@@ -1,6 +1,21 @@
 package genh
 
-import "reflect"
+import (
+	"reflect"
+
+	"go.oneofone.dev/genh/internal"
+)
+
+type (
+	Signed      = internal.Signed
+	Unsigned    = internal.Unsigned
+	Integer     = internal.Integer
+	Float       = internal.Float
+	Complex     = internal.Complex
+	Ordered     = internal.Ordered
+	EncoderType = internal.EncoderType
+	DecoderType = internal.DecoderType
+)
 
 // ValuesToPtrs converts a slice of values to a slice of pointers
 // optionally copying the values instead of pointing to them in the original slice.
