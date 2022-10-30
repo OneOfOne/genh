@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/vmihailenco/msgpack/v5"
+	"go.oneofone.dev/msgpack/v5"
 )
 
 type (

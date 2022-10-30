@@ -5,7 +5,7 @@ import (
 	"encoding"
 	"encoding/json"
 
-	"github.com/vmihailenco/msgpack/v5"
+	"go.oneofone.dev/msgpack/v5"
 )
 
 var (
