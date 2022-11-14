@@ -55,4 +55,17 @@ func TestSLMap(t *testing.T) {
 	if count != 10000 {
 		t.Fatal("count != 10000", count)
 	}
+	j, err := MarshalMsgpack(sm)
+	DieIf(t, err)
+	var sm2 SLMap[S]
+	DieIf(t, UnmarshalMsgpack(j, &sm2))
+	if sm2.Len() != 10000 {
+		t.Fatal("sm2.Len() != 10000", sm2.Len())
+	}
+	sm2.ForEach(func(k string, v S) bool {
+		if v.X != sm.Get(k).X {
+			t.Fatal("v.I != sm.Get(k).I", v.X, sm.Get(k).X)
+		}
+		return true
+	})
 }

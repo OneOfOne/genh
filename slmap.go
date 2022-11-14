@@ -1,40 +1,43 @@
 package genh
 
 import (
+	"bytes"
+	"encoding/json"
 	"hash/maphash"
 	"runtime"
 	"sync"
 )
 
-func NewSLMap[V any](ln int) (sm *SLMap[V]) {
+func NewSLMap[V any](ln int) *SLMap[V] {
 	if ln < 1 {
 		ln = runtime.NumCPU()
 	}
-	sm.ms = make([]*LMap[string, V], ln)
-	for i := range sm.ms {
-		sm.ms[i] = NewLMap[string, V](0)
-	}
-	sm.s = maphash.MakeSeed()
-	return
+	var sm SLMap[V]
+	sm.init(ln)
+	return &sm
 }
 
 type SLMap[V any] struct {
-	s    maphash.Seed
-	ms   []*LMap[string, V]
-	init sync.Once
+	s  maphash.Seed
+	o  sync.Once
+	ms []*LMap[string, V]
 }
 
 func (lm *SLMap[V]) m(k string) *LMap[string, V] {
-	lm.init.Do(func() {
+	lm.o.Do(func() {
 		if len(lm.ms) == 0 {
-			lm.ms = make([]*LMap[string, V], runtime.NumCPU())
-			for i := range lm.ms {
-				lm.ms[i] = NewLMap[string, V](0)
-			}
-			lm.s = maphash.MakeSeed()
+			lm.init(runtime.NumCPU())
 		}
 	})
 	return lm.ms[maphash.String(lm.s, k)%uint64(len(lm.ms))]
+}
+
+func (lm *SLMap[V]) init(sz int) {
+	lm.ms = make([]*LMap[string, V], sz)
+	for i := range lm.ms {
+		lm.ms[i] = NewLMap[string, V](0)
+	}
+	lm.s = maphash.MakeSeed()
 }
 
 func (lm *SLMap[V]) Set(k string, v V) {
@@ -135,4 +138,82 @@ func (lm *SLMap[V]) Len() (ln int) {
 		ln += m.Len()
 	}
 	return
+}
+
+func (lm *SLMap[V]) MarshalJSON() (_ []byte, err error) {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	first := true
+	buf.WriteRune('{')
+	lm.ForEach(func(k string, v V) bool {
+		if !first {
+			buf.WriteRune(',')
+		} else {
+			first = false
+		}
+		enc.Encode(k)
+		buf.Truncate(buf.Len() - 1)
+		buf.WriteRune(':')
+		err = enc.Encode(v)
+		buf.Truncate(buf.Len() - 1)
+		return err == nil
+	})
+	if err != nil {
+		return
+	}
+	buf.WriteRune('}')
+
+	return buf.Bytes(), nil
+}
+
+func (lm *SLMap[V]) UnmarshalJSON(p []byte) (err error) {
+	var m map[string]V
+	if err = json.Unmarshal(p, &m); err != nil {
+		return
+	}
+	for k, v := range m {
+		lm.Set(k, v)
+	}
+	return
+}
+
+func (lm *SLMap[V]) MarshalBinary() (_ []byte, err error) {
+	var buf bytes.Buffer
+	enc := NewMsgpackEncoder(&buf)
+	defer PutMsgpackEncoder(enc)
+	ln := lm.Len()
+	enc.EncodeMapLen(ln)
+	lm.ForEach(func(k string, v V) bool {
+		if ln--; ln < 0 {
+			return false
+		}
+		enc.EncodeString(k)
+		err = enc.Encode(v)
+		return err == nil
+	})
+	if err != nil {
+		return
+	}
+	return buf.Bytes(), nil
+}
+
+func (lm *SLMap[V]) UnmarshalBinary(p []byte) error {
+	dec := NewMsgpackDecoder(bytes.NewReader(p))
+	defer PutMsgpackDecoder(dec)
+	ln, err := dec.DecodeMapLen()
+	if err != nil {
+		return err
+	}
+	for i := 0; i < ln; i++ {
+		k, err := dec.DecodeString()
+		if err != nil {
+			return err
+		}
+		var v V
+		if err = dec.Decode(&v); err != nil {
+			return err
+		}
+		lm.Set(k, v)
+	}
+	return nil
 }
