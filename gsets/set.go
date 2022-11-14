@@ -10,13 +10,7 @@ import (
 	"go.oneofone.dev/genh/internal"
 )
 
-func boolp(b bool) *bool {
-	return &b
-}
-
-var empty struct{}
-
-func SetOf[T internal.Ordered](keys ...T) Set[T] {
+func Of[T internal.Ordered](keys ...T) Set[T] {
 	s := Set[T]{}
 	s.Add(keys...)
 	return s
@@ -43,7 +37,7 @@ func (s *Set[T]) Set(keys ...T) Set[T] {
 func (s Set[T]) Add(keys ...T) Set[T] {
 	s = s.init()
 	for _, k := range keys {
-		s[k] = empty
+		s[k] = struct{}{}
 	}
 	return s
 }
@@ -58,7 +52,7 @@ func (s *Set[T]) AddIfNotExists(key T) bool {
 		return false
 	}
 
-	sm[key] = empty
+	sm[key] = struct{}{}
 	return true
 }
 
@@ -74,7 +68,7 @@ func (s Set[T]) Merge(os ...Set[T]) Set[T] {
 	s = s.init()
 	for _, o := range os {
 		for k := range o {
-			s[k] = empty
+			s[k] = struct{}{}
 		}
 	}
 	return s
@@ -178,6 +172,19 @@ func (s *Set[T]) UnmarshalJSON(data []byte) (err error) {
 	var keys []T
 	if err = json.Unmarshal(data, &keys); err == nil {
 		s.Set(keys...)
+	}
+	return
+}
+
+func (s Set[T]) MarshalBinary() ([]byte, error) {
+	keys := s.Keys()
+	return internal.MarshalMsgpack(keys)
+}
+
+func (s *Set[T]) UnmarshalBinary(data []byte) (err error) {
+	var keys []T
+	if err = internal.UnmarshalMsgpack(data, &keys); err == nil {
+		*s = Of(keys...)
 	}
 	return
 }

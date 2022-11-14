@@ -8,8 +8,8 @@ import (
 	"go.oneofone.dev/genh/internal"
 )
 
-func SafeSetOf[T internal.Ordered](keys ...T) *SafeSet[T] {
-	s := SetOf(keys...)
+func SafeOf[T internal.Ordered](keys ...T) *SafeSet[T] {
+	s := Of(keys...)
 	return &SafeSet[T]{s: s}
 }
 
@@ -103,6 +103,22 @@ func (ss *SafeSet[T]) MarshalJSON() ([]byte, error) {
 func (ss *SafeSet[T]) UnmarshalJSON(data []byte) error {
 	var s Set[T]
 	if err := s.UnmarshalJSON(data); err != nil {
+		return err
+	}
+	ss.mux.Lock()
+	ss.s = s
+	ss.mux.Unlock()
+	return nil
+}
+
+func (ss *SafeSet[T]) MarshalBinary() ([]byte, error) {
+	keys := ss.Keys()
+	return internal.MarshalMsgpack(keys)
+}
+
+func (ss *SafeSet[T]) UnmarshalBinary(data []byte) error {
+	var s Set[T]
+	if err := s.UnmarshalBinary(data); err != nil {
 		return err
 	}
 	ss.mux.Lock()
