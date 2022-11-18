@@ -59,6 +59,11 @@ func TestLists(t *testing.T) {
 	if !Equal(lls.Slice(), exp[5:]) || lls.Len() != 5 {
 		t.Fatal("exp != ll", exp[5:], lls.Slice(), lls.Len())
 	}
+
+	mls := l.AppendList(ListOf(exp[:5]...))
+	if !Equal(mls.Slice(), append(exp, exp[0:5]...)) || mls.Len() != 15 {
+		t.Fatal("exp != ll", exp[5:], mls.Slice(), mls.Len())
+	}
 }
 
 func TestListIter(t *testing.T) {

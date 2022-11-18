@@ -122,6 +122,13 @@ func (l *List[T]) Push(vs ...T) {
 	}
 }
 
+// Merge can cause an infinitate loop if ol is a part of l
+func (l *List[T]) Merge(ol *List[T]) {
+	l.len += ol.len
+	l.tail.next = ol.head
+	l.tail = ol.tail
+}
+
 // PushSort pushes the item in the order returned by lessFn
 // PushSort does *not* work with Clip, use Clone if you really have to.
 func (l *List[T]) PushSort(v T, lessFn func(a, b T) bool) {
@@ -143,6 +150,11 @@ func (l *List[T]) PushSort(v T, lessFn func(a, b T) bool) {
 
 func (l List[T]) Append(vs ...T) List[T] {
 	l.Push(vs...)
+	return l
+}
+
+func (l List[T]) AppendList(ol List[T]) List[T] {
+	l.Merge(&ol)
 	return l
 }
 
