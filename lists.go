@@ -124,6 +124,12 @@ func (l *List[T]) Push(vs ...T) {
 
 // Merge can cause an infinitate loop if ol is a part of l
 func (l *List[T]) Merge(ol *List[T]) {
+	if l == nil || l.tail == nil {
+		if ol != nil {
+			*l = *ol
+		}
+		return
+	}
 	l.len += ol.len
 	l.tail.next = ol.head
 	l.tail = ol.tail
