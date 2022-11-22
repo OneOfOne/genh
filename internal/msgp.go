@@ -5,7 +5,7 @@ import (
 	"io"
 	"sync"
 
-	"go.oneofone.dev/msgpack/v5"
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 type (
@@ -23,7 +23,7 @@ var decPool = sync.Pool{
 }
 
 func PutMsgpackDecoder(dec *MsgpackDecoder) {
-	dec.ResetReader(nil)
+	dec.Reset(nil)
 	decPool.Put(dec)
 }
 
@@ -38,7 +38,7 @@ var encPool = sync.Pool{
 }
 
 func PutMsgpackEncoder(enc *MsgpackEncoder) {
-	enc.ResetWriter(nil)
+	enc.Reset(nil)
 	encPool.Put(enc)
 }
 
@@ -70,7 +70,10 @@ func DecodeMsgpack(r io.Reader, vs ...any) error {
 // uses json CustomStructTag, compact floats and ints.
 func NewMsgpackEncoder(w io.Writer) *MsgpackEncoder {
 	enc := encPool.Get().(*MsgpackEncoder)
-	enc.ResetWriter(w)
+	enc.Reset(w)
+	enc.SetCustomStructTag("json")
+	enc.UseCompactFloats(true)
+	enc.UseCompactInts(true)
 	return enc
 }
 
@@ -78,6 +81,8 @@ func NewMsgpackEncoder(w io.Writer) *MsgpackEncoder {
 // uses json CustomStructTag, and loose interface decoding.
 func NewMsgpackDecoder(r io.Reader) *MsgpackDecoder {
 	dec := decPool.Get().(*MsgpackDecoder)
-	dec.ResetReader(r)
+	dec.Reset(r)
+	dec.SetCustomStructTag("json")
+	dec.UseLooseInterfaceDecoding(true)
 	return dec
 }
