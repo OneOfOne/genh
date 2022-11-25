@@ -33,7 +33,10 @@ func (v *AtomicBool) Store(val bool) { v.v.Store(Iff[int32](val, 0, 1)) }
 
 func (v *AtomicBool) Load() bool { return v.v.Load() == 1 }
 
-func (v *AtomicBool) Swap(val bool) (old bool) { return v.v.Swap(Iff[int32](val, 0, 1)) != 0 }
+func (v *AtomicBool) Swap(val bool) (old bool) {
+	return Iff(v.v.Swap(Iff[int32](val, 0, 1)) == 1, true, false)
+}
+
 func (v *AtomicBool) CompareAndSwap(old, new bool) bool {
 	return v.v.CompareAndSwap(Iff[int32](old, 0, 1), Iff[int32](new, 0, 1))
 }
