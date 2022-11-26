@@ -71,7 +71,6 @@ func DecodeMsgpack(r io.Reader, vs ...any) error {
 func NewMsgpackEncoder(w io.Writer) *MsgpackEncoder {
 	enc := encPool.Get().(*MsgpackEncoder)
 	enc.Reset(w)
-	enc.SetCustomStructTag("json")
 	enc.UseCompactFloats(true)
 	enc.UseCompactInts(true)
 	return enc
@@ -82,7 +81,6 @@ func NewMsgpackEncoder(w io.Writer) *MsgpackEncoder {
 func NewMsgpackDecoder(r io.Reader) *MsgpackDecoder {
 	dec := decPool.Get().(*MsgpackDecoder)
 	dec.Reset(r)
-	dec.SetCustomStructTag("json")
 	dec.UseLooseInterfaceDecoding(true)
 	return dec
 }
