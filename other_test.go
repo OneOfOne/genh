@@ -14,7 +14,8 @@ func TestFirstNonZero(t *testing.T) {
 		args args
 		want any
 	}{
-		{"ints", args{[]any{nil, 1, 2, 3}}, 1},
+		{"ints", args{[]any{nil, 0, 5, 1, 2}}, 5},
+		{"strings", args{[]any{"", nil, "a", "b"}}, "a"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
