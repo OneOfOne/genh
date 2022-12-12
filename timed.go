@@ -8,16 +8,17 @@ import (
 
 type tmEle[V any] struct {
 	sync.RWMutex
-	la atomic.Int64 // last access / read
-	v  V
-	t  *time.Timer
+	la  atomic.Int64 // last access / read
+	v   V
+	t   *time.Timer
+	ttl time.Duration
 }
 
-func (e *tmEle[V]) expired(expiry time.Duration) bool {
-	if expiry < 1 {
+func (e *tmEle[V]) expired() bool {
+	if e.ttl < 1 {
 		return false
 	}
-	return time.Since(time.Unix(0, e.la.Load())) > expiry
+	return time.Since(time.Unix(0, e.la.Load())) > e.ttl
 }
 
 type TimedMap[K comparable, V any] struct {
@@ -25,7 +26,7 @@ type TimedMap[K comparable, V any] struct {
 }
 
 func (tm *TimedMap[K, V]) Set(k K, v V, timeout time.Duration) {
-	ele := &tmEle[V]{v: v}
+	ele := &tmEle[V]{v: v, ttl: timeout}
 	ele.la.Store(time.Now().UnixNano())
 	if timeout > 0 {
 		ele.t = time.AfterFunc(timeout, func() { tm.deleteEle(k, ele) })
@@ -38,29 +39,26 @@ func (tm *TimedMap[K, V]) SetUpdateFn(k K, vfn func() V, updateEvery time.Durati
 }
 
 func (tm *TimedMap[K, V]) SetUpdateExpireFn(k K, vfn func() V, updateEvery, expireIfNotAccessedFor time.Duration) {
-	ele := &tmEle[V]{v: vfn()}
-	ele.la.Store(time.Now().UnixNano())
-	tm.m.Set(k, ele)
 	if updateEvery < time.Millisecond {
 		panic("every must be >= time.Millisecond")
 	}
-	go func() {
-		for {
-			time.Sleep(updateEvery)
-			if tm.m.Get(k) != ele {
-				return
-			}
-			v := vfn()
-			ele.Lock()
-			if ele.expired(expireIfNotAccessedFor) {
-				tm.deleteEle(k, ele)
-				ele.Unlock()
-				return
-			}
-			ele.v = v
-			ele.Unlock()
+
+	ele := &tmEle[V]{v: vfn(), ttl: expireIfNotAccessedFor}
+	ele.la.Store(time.Now().UnixNano())
+	var upfn func()
+	upfn = func() {
+		if ele.expired() {
+			tm.deleteEle(k, ele)
+			return
 		}
-	}()
+		v := vfn()
+		ele.Lock()
+		ele.v = v
+		ele.t = time.AfterFunc(updateEvery, upfn)
+		ele.Unlock()
+	}
+	ele.t = time.AfterFunc(updateEvery, upfn)
+	tm.m.Set(k, ele)
 }
 
 func (tm *TimedMap[K, V]) Get(k K) (v V) {
@@ -70,7 +68,7 @@ func (tm *TimedMap[K, V]) Get(k K) (v V) {
 
 func (tm *TimedMap[K, V]) GetOk(k K) (v V, ok bool) {
 	ele := tm.m.Get(k)
-	if ok = ele != nil; ok {
+	if ok = ele != nil && !ele.expired(); ok {
 		now := time.Now().UnixNano()
 		ele.RLock()
 		defer ele.RUnlock()
@@ -82,7 +80,7 @@ func (tm *TimedMap[K, V]) GetOk(k K) (v V, ok bool) {
 
 func (tm *TimedMap[K, V]) DeleteGet(k K) (v V, ok bool) {
 	ele := tm.m.DeleteGet(k)
-	if ok = ele != nil; ok {
+	if ok = ele != nil && !ele.expired(); ok {
 		ele.RLock()
 		defer ele.RUnlock()
 		v = ele.v
@@ -94,8 +92,7 @@ func (tm *TimedMap[K, V]) DeleteGet(k K) (v V, ok bool) {
 }
 
 func (tm *TimedMap[K, V]) Delete(k K) {
-	ele := tm.m.DeleteGet(k)
-	if ele != nil {
+	if ele := tm.m.DeleteGet(k); ele != nil {
 		if ele.t != nil {
 			ele.t.Stop()
 		}
