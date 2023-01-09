@@ -53,11 +53,16 @@ func (tm *TimedMap[K, V]) SetUpdateExpireFn(k K, vfn func() V, updateEvery, expi
 		}
 		v := vfn()
 		ele.Lock()
+		if ele.t != nil {
+			ele.t.Stop()
+		}
 		ele.v = v
 		ele.t = time.AfterFunc(updateEvery, upfn)
 		ele.Unlock()
 	}
+	ele.Lock()
 	ele.t = time.AfterFunc(updateEvery, upfn)
+	ele.Unlock()
 	tm.m.Set(k, ele)
 }
 
