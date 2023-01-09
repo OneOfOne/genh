@@ -249,6 +249,10 @@ func (l *List[T]) Clear() {
 	*l = List[T]{}
 }
 
+func (l List[T]) Safe() *LList[T] {
+	return &LList[T]{l: l}
+}
+
 // Iter is a c++-style iterator:
 // it := l.Iter()
 // for v := it.Value(); it.Next(); v = it.Value()) {}
