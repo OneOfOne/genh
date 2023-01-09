@@ -36,4 +36,10 @@ func (l *LList[T]) Clear() {
 	l.l.Clear()
 }
 
+func (l *LList[T]) Raw() List[T] {
+	l.mux.RLock()
+	defer l.mux.RUnlock()
+	return l.l.Clip()
+}
+
 // TODO: rest of the list interface
