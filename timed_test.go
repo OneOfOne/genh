@@ -14,7 +14,7 @@ func TestTimedMap(t *testing.T) {
 	tm.SetUpdateExpireFn("key", func() string {
 		i++
 		return fmt.Sprintf("val:%d", i)
-	}, time.Millisecond*100, time.Millisecond*400)
+	}, time.Millisecond*110, time.Millisecond*400)
 	time.Sleep(time.Millisecond * 100)
 	if v := tm.Get("key"); v != "val:1" {
 		t.Fatal("expected val:1, got", v)

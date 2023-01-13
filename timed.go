@@ -43,7 +43,7 @@ func (tm *TimedMap[K, V]) SetUpdateExpireFn(k K, vfn func() V, updateEvery, expi
 		panic("every must be >= time.Millisecond")
 	}
 
-	ele := &tmEle[V]{v: vfn(), ttl: expireIfNotAccessedFor}
+	ele := &tmEle[V]{ttl: expireIfNotAccessedFor}
 	ele.la.Store(time.Now().UnixNano())
 	var upfn func()
 	upfn = func() {
@@ -60,9 +60,7 @@ func (tm *TimedMap[K, V]) SetUpdateExpireFn(k K, vfn func() V, updateEvery, expi
 		ele.t = time.AfterFunc(updateEvery, upfn)
 		ele.Unlock()
 	}
-	ele.Lock()
-	ele.t = time.AfterFunc(updateEvery, upfn)
-	ele.Unlock()
+	upfn()
 	tm.m.Set(k, ele)
 }
 
