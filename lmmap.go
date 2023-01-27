@@ -11,8 +11,8 @@ func NewLMultiMap[K1, K2 comparable, V any](sz int) *LMultiMap[K1, K2, V] {
 
 // LMultiMap is a locked multimap
 type LMultiMap[K1, K2 comparable, V any] struct {
-	mux sync.RWMutex
 	m   map[K1]map[K2]V
+	mux sync.RWMutex
 }
 
 func (lm *LMultiMap[K1, K2, V]) Set(k1 K1, k2 K2, v V) {

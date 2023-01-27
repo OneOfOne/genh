@@ -18,9 +18,9 @@ func NewSLMap[V any](ln int) *SLMap[V] {
 }
 
 type SLMap[V any] struct {
+	ms []*LMap[string, V]
 	s  maphash.Seed
 	o  sync.Once
-	ms []*LMap[string, V]
 }
 
 func (lm *SLMap[V]) m(k string) *LMap[string, V] {
