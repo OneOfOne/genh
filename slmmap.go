@@ -40,3 +40,13 @@ func (lm *SLMultiMap[V]) Get(k1, k2 string) V {
 func (lm *SLMultiMap[V]) MustGet(k1, k2 string, fn func() V) V {
 	return lm.m(k1).MustGet(k1, k2, fn)
 }
+
+func (lm *SLMultiMap[V]) Delete(k1, k2 string) {
+	lm.m(k1).Delete(k2)
+}
+
+func (lm *SLMultiMap[V]) Clear() {
+	for _, m := range lm.ms {
+		m.Clear()
+	}
+}

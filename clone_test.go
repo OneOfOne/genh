@@ -114,6 +114,10 @@ func TestClone(t *testing.T) {
 		t.Fatal("src.x == dst.x", src.x, dst.x)
 	}
 	t.Logf("%s", sj)
+
+	if dst.Y["z"].([]int)[0] = 42; src.Y["z"].([]int)[0] != 1 {
+		t.Fatal("src.y == dst.y", src.Y, dst.Y)
+	}
 }
 
 var cloneSink *cloneStruct
