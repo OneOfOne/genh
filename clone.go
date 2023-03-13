@@ -2,7 +2,49 @@ package genh
 
 import (
 	"reflect"
+	"sync"
 )
+
+var cloneCache struct {
+	sync.RWMutex
+	m map[reflect.Type]int
+}
+
+func hasCloner(t reflect.Type) int {
+	cloneCache.RLock()
+	v, ok := cloneCache.m[t]
+	cloneCache.RUnlock()
+	if ok {
+		return v
+	}
+	cloneCache.Lock()
+	defer cloneCache.Unlock()
+	if cloneCache.m == nil {
+		cloneCache.m = make(map[reflect.Type]int)
+	}
+
+	if hasClone(t) {
+		v = 1
+	} else if hasClone(reflect.PtrTo(t)) {
+		v = 2
+	}
+	cloneCache.m[t] = v
+	return v
+}
+
+func hasClone(t reflect.Type) bool {
+	m, ok := t.MethodByName("Clone")
+	if !ok {
+		return false
+	}
+	if m.Type.NumOut() != 1 {
+		return false
+	}
+	if ot := m.Type.Out(0); ot != m.Type.In(0) {
+		return false
+	}
+	return true
+}
 
 type Cloner[T any] interface {
 	Clone() T
@@ -109,15 +151,22 @@ func maybeCopy(src reflect.Value, copyPrivate bool) reflect.Value {
 }
 
 func cloneVal(dst, src reflect.Value) bool {
-	m := src.MethodByName("Clone")
-	if !m.IsValid() && src.CanAddr() {
-		m = src.Addr().MethodByName("Clone")
-	}
-	if !m.IsValid() || m.Type().Out(0) != src.Type() {
+	var m reflect.Value
+	switch hasCloner(src.Type()) {
+	case 1:
+		m = src.MethodByName("Clone")
+	case 2:
+		if src.CanAddr() {
+			m = src.Addr().MethodByName("Clone")
+		}
+	default:
 		return false
 	}
-	v := m.Call(nil)[0]
 
+	v := m.Call(nil)[0]
+	if v.Kind() == reflect.Interface {
+		v = v.Elem()
+	}
 	if v.Kind() == reflect.Ptr && dst.Kind() != reflect.Ptr {
 		v = v.Elem()
 	}
