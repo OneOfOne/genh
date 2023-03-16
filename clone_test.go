@@ -3,7 +3,6 @@ package genh
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"reflect"
 	"testing"
 )
@@ -43,10 +42,13 @@ func (c *cloner) Clone() *cloner {
 	return c
 }
 
-type cloner0 struct{ A int }
+type cloner0 struct {
+	A      int
+	cloned bool
+}
 
-func (c *cloner0) Clone() any {
-	log.Println("cloner0")
+func (c cloner0) Clone() cloner0 {
+	c.cloned = true
 	return c
 }
 
@@ -76,7 +78,7 @@ func TestClone(t *testing.T) {
 
 		C:  cloner{A: 420},
 		C2: &cloner{A: 420},
-		C3: cloner0{420},
+		C3: cloner0{420, false},
 	}
 
 	dst := Clone(src, true)
@@ -100,6 +102,12 @@ func TestClone(t *testing.T) {
 	if src.x != dst.x {
 		t.Fatal("src.x != dst.x", src.x, dst.x)
 	}
+
+	if !dst.C3.cloned {
+		t.Fatal("!dst.C3.cloned")
+	}
+
+	dst.C3.cloned = false // so the next check passes
 
 	if !reflect.DeepEqual(src, dst) {
 		j1, _ := json.Marshal(src)
