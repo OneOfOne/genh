@@ -6,8 +6,8 @@ import (
 )
 
 var cloneCache struct {
-	sync.RWMutex
 	m map[reflect.Type]int
+	sync.RWMutex
 }
 
 func hasCloner(t reflect.Type) int {

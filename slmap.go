@@ -24,12 +24,16 @@ type SLMap[V any] struct {
 }
 
 func (lm *SLMap[V]) m(k string) *LMap[string, V] {
+	lm.initOnce()
+	return lm.ms[maphash.String(lm.s, k)%uint64(len(lm.ms))]
+}
+
+func (lm *SLMap[V]) initOnce() {
 	lm.o.Do(func() {
 		if len(lm.ms) == 0 {
 			lm.init(runtime.NumCPU())
 		}
 	})
-	return lm.ms[maphash.String(lm.s, k)%uint64(len(lm.ms))]
 }
 
 func (lm *SLMap[V]) init(sz int) {
@@ -61,6 +65,7 @@ func (lm *SLMap[V]) DeleteGet(k string) V {
 }
 
 func (lm *SLMap[V]) Keys() (keys []string) {
+	lm.initOnce()
 	ln := 0
 	for _, m := range lm.ms {
 		ln += m.Len()
@@ -73,6 +78,7 @@ func (lm *SLMap[V]) Keys() (keys []string) {
 }
 
 func (lm *SLMap[V]) Values() (values []V) {
+	lm.initOnce()
 	ln := 0
 	for _, m := range lm.ms {
 		ln += m.Len()
@@ -85,6 +91,7 @@ func (lm *SLMap[V]) Values() (values []V) {
 }
 
 func (lm *SLMap[V]) Clone() (out map[string]V) {
+	lm.initOnce()
 	ln := 0
 	for _, m := range lm.ms {
 		ln += m.Len()
@@ -100,12 +107,14 @@ func (lm *SLMap[V]) Clone() (out map[string]V) {
 }
 
 func (lm *SLMap[V]) Update(fn func(m map[string]V)) {
+	lm.initOnce()
 	for _, m := range lm.ms {
 		m.Update(fn)
 	}
 }
 
 func (lm *SLMap[V]) Read(fn func(m map[string]V)) {
+	lm.initOnce()
 	for _, m := range lm.ms {
 		m.Read(fn)
 	}
@@ -120,6 +129,7 @@ func (lm *SLMap[V]) MustGet(k string, fn func() V) V {
 }
 
 func (lm *SLMap[V]) ForEach(fn func(k string, v V) bool) {
+	lm.initOnce()
 	for _, m := range lm.ms {
 		m.ForEach(func(k string, v V) bool {
 			return fn(k, v)
@@ -128,12 +138,14 @@ func (lm *SLMap[V]) ForEach(fn func(k string, v V) bool) {
 }
 
 func (lm *SLMap[V]) Clear() {
+	lm.initOnce()
 	for _, m := range lm.ms {
 		m.Clear()
 	}
 }
 
 func (lm *SLMap[V]) Len() (ln int) {
+	lm.initOnce()
 	for _, m := range lm.ms {
 		ln += m.Len()
 	}
