@@ -138,6 +138,13 @@ func (lm *LMultiMap[K1, K2, V]) Get(k1 K1, k2 K2) (v V) {
 	return
 }
 
+func (lm *LMultiMap[K1, K2, V]) GetOk(k1 K1, k2 K2) (v V, ok bool) {
+	lm.mux.RLock()
+	v, ok = lm.m[k1][k2]
+	lm.mux.RUnlock()
+	return
+}
+
 func (lm *LMultiMap[K1, K2, V]) MustGet(k1 K1, k2 K2, fn func() V) V {
 	lm.mux.RLock()
 	v, ok := lm.m[k1][k2]
@@ -193,6 +200,18 @@ func (lm *LMultiMap[K1, K2, V]) GetChild(k1 K1, copy bool) map[K2]V {
 	}
 
 	return MapClone(lm.m[k1])
+}
+
+func (lm *LMultiMap[K1, K2, V]) ForEachAll(fn func(k1 K1, k2 K2, v V) bool) {
+	lm.mux.RLock()
+	defer lm.mux.RUnlock()
+	for k1, m := range lm.m {
+		for k2, v := range m {
+			if !fn(k1, k2, v) {
+				return
+			}
+		}
+	}
 }
 
 func (lm *LMultiMap[K1, K2, V]) ForEach(fn func(k1 K1, m map[K2]V) bool, rw bool) {
