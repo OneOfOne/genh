@@ -154,20 +154,25 @@ func BenchmarkClone(b *testing.B) {
 		C:  cloner{A: 420},
 		C2: &cloner{A: 420},
 	}
-	j, _ := json.Marshal(&s)
 
 	b.Run("Fn", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			cloneSink = Clone(s, true)
-		}
+		b.RunParallel(func(p *testing.PB) {
+			for p.Next() {
+				if Clone(s, true) == nil {
+					b.Fatal("nil")
+				}
+			}
+		})
 	})
 	b.Run("JSON", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			var ss cloneStruct
-			if err := json.Unmarshal(j, &ss); err != nil {
-				b.Fatal(err)
+		b.RunParallel(func(p *testing.PB) {
+			for p.Next() {
+				var ss cloneStruct
+				j, _ := json.Marshal(&s)
+				if err := json.Unmarshal(j, &ss); err != nil {
+					b.Fatal(err)
+				}
 			}
-			cloneSink = &ss
-		}
+		})
 	})
 }

@@ -55,11 +55,15 @@ func Clone[T any](v T, keepPrivateFields bool) (cp T) {
 		return v.Clone()
 	}
 	src, dst := reflect.ValueOf(v), reflect.ValueOf(&cp).Elem()
-	ReflectClone(dst, src, keepPrivateFields)
+	reflectClone(dst, src, keepPrivateFields, false)
 	return
 }
 
 func ReflectClone(dst, src reflect.Value, keepPrivateFields bool) {
+	reflectClone(dst, src, keepPrivateFields, true)
+}
+
+func reflectClone(dst, src reflect.Value, keepPrivateFields, checkClone bool) {
 	if !src.IsValid() || src.IsZero() {
 		return
 	}
@@ -69,9 +73,12 @@ func ReflectClone(dst, src reflect.Value, keepPrivateFields bool) {
 	}
 
 	styp := src.Type()
-
-	if cloneVal(dst, src) {
-		return
+	if checkClone {
+		if cv := hasCloner(styp); cv != 0 {
+			if cloneVal(dst, src, cv) {
+				return
+			}
+		}
 	}
 
 	switch styp.Kind() {
@@ -83,11 +90,22 @@ func ReflectClone(dst, src reflect.Value, keepPrivateFields bool) {
 		fallthrough
 
 	case reflect.Array:
+		hasClone := hasCloner(styp.Elem())
+		if hasClone > 0 {
+			for i := 0; i < src.Len(); i++ {
+				dst, src := dst.Index(i), src.Index(i)
+				if !cloneVal(dst, src, hasClone) {
+					panic("bad")
+				}
+			}
+			break
+		}
+
 		for i := 0; i < src.Len(); i++ {
 			dst, src := dst.Index(i), src.Index(i)
 
 			if dst.Kind() != reflect.Interface {
-				ReflectClone(dst, src, keepPrivateFields)
+				reflectClone(dst, src, keepPrivateFields, false)
 				continue
 			}
 
@@ -95,7 +113,7 @@ func ReflectClone(dst, src reflect.Value, keepPrivateFields bool) {
 				src = src.Elem()
 			}
 			ndst := reflect.New(src.Type()).Elem()
-			ReflectClone(ndst, src, keepPrivateFields)
+			reflectClone(ndst, src, keepPrivateFields, false)
 			dst.Set(ndst)
 
 		}
@@ -120,7 +138,7 @@ func ReflectClone(dst, src reflect.Value, keepPrivateFields bool) {
 
 		for i := 0; i < styp.NumField(); i++ {
 			if f := dst.Field(i); f.CanSet() {
-				ReflectClone(dst.Field(i), src.Field(i), keepPrivateFields)
+				reflectClone(dst.Field(i), src.Field(i), keepPrivateFields, true)
 			}
 		}
 
@@ -129,7 +147,7 @@ func ReflectClone(dst, src reflect.Value, keepPrivateFields bool) {
 			return
 		}
 		ndst := reflect.New(styp.Elem())
-		ReflectClone(ndst.Elem(), src.Elem(), keepPrivateFields)
+		reflectClone(ndst.Elem(), src.Elem(), keepPrivateFields, true)
 		dst.Set(ndst)
 
 	default:
@@ -139,9 +157,9 @@ func ReflectClone(dst, src reflect.Value, keepPrivateFields bool) {
 
 func maybeCopy(src reflect.Value, copyPrivate bool) reflect.Value {
 	switch src.Kind() {
-	case reflect.Ptr, reflect.Array, reflect.Slice, reflect.Map:
+	case reflect.Ptr, reflect.Array, reflect.Slice, reflect.Map, reflect.Struct:
 		nv := reflect.New(src.Type()).Elem()
-		ReflectClone(nv, src, copyPrivate)
+		reflectClone(nv, src, copyPrivate, hasCloner(nv.Type()) > 0)
 		return nv
 	case reflect.Interface:
 		return maybeCopy(src.Elem(), copyPrivate)
@@ -150,23 +168,18 @@ func maybeCopy(src reflect.Value, copyPrivate bool) reflect.Value {
 	}
 }
 
-func cloneVal(dst, src reflect.Value) bool {
+func cloneVal(dst, src reflect.Value, cv int) bool {
 	var m reflect.Value
-	switch hasCloner(src.Type()) {
+	switch cv {
 	case 1:
 		m = src.MethodByName("Clone")
 	case 2:
-		if src.CanAddr() {
-			m = src.Addr().MethodByName("Clone")
-		}
+		m = src.Addr().MethodByName("Clone")
 	default:
 		return false
 	}
 
 	v := m.Call(nil)[0]
-	if v.Kind() == reflect.Interface {
-		v = v.Elem()
-	}
 	if v.Kind() == reflect.Ptr && dst.Kind() != reflect.Ptr {
 		v = v.Elem()
 	}
