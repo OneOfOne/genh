@@ -1,13 +1,18 @@
 package genh
 
 import (
+	"math"
 	"reflect"
 	"sync"
 )
 
-var cloneCache struct {
-	m map[reflect.Type]int
+var cloneCache = struct {
+	m       map[reflect.Type]int
+	structs map[reflect.Type]bool
 	sync.RWMutex
+}{
+	m:       make(map[reflect.Type]int),
+	structs: make(map[reflect.Type]bool),
 }
 
 func hasCloner(t reflect.Type) int {
@@ -19,31 +24,30 @@ func hasCloner(t reflect.Type) int {
 	}
 	cloneCache.Lock()
 	defer cloneCache.Unlock()
-	if cloneCache.m == nil {
-		cloneCache.m = make(map[reflect.Type]int)
-	}
 
-	if hasClone(t) {
-		v = 1
-	} else if hasClone(reflect.PtrTo(t)) {
-		v = 2
+	v = math.MaxInt
+	if idx := hasClone(t); idx != math.MaxInt {
+		v = idx + 1
+	} else if idx := hasClone(reflect.PtrTo(t)); idx != math.MaxInt {
+		v = -(idx + 1)
 	}
 	cloneCache.m[t] = v
 	return v
 }
 
-func hasClone(t reflect.Type) bool {
+func hasClone(t reflect.Type) int {
 	m, ok := t.MethodByName("Clone")
 	if !ok {
-		return false
+		return math.MaxInt
 	}
+
 	if m.Type.NumOut() != 1 {
-		return false
+		return math.MaxInt
 	}
-	if ot := m.Type.Out(0); ot != m.Type.In(0) {
-		return false
+	if m.Type.Out(0) != m.Type.In(0) {
+		return math.MaxInt
 	}
-	return true
+	return m.Index
 }
 
 type Cloner[T any] interface {
@@ -73,63 +77,64 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields, checkClone bool) {
 	}
 
 	styp := src.Type()
-	if checkClone {
-		if cv := hasCloner(styp); cv != 0 {
-			if cloneVal(dst, src, cv) {
-				return
-			}
-		}
+
+	if checkClone && cloneVal(dst, src, hasCloner(styp)) {
+		return
 	}
 
 	switch styp.Kind() {
 	case reflect.Slice:
-		if src.IsNil() {
-			return
-		}
 		dst.Set(reflect.MakeSlice(styp, src.Len(), src.Cap()))
 		fallthrough
 
 	case reflect.Array:
-		hasClone := hasCloner(styp.Elem())
-		if hasClone > 0 {
-			for i := 0; i < src.Len(); i++ {
-				dst, src := dst.Index(i), src.Index(i)
-				if !cloneVal(dst, src, hasClone) {
-					panic("bad")
-				}
-			}
-			break
-		}
-
+		isIface := styp.Elem().Kind() == reflect.Interface
+		checkClone := isIface || hasCloner(styp.Elem()) != math.MaxInt
+		isSimpleEle := isSimple(styp.Elem().Kind())
 		for i := 0; i < src.Len(); i++ {
 			dst, src := dst.Index(i), src.Index(i)
-
-			if dst.Kind() != reflect.Interface {
-				reflectClone(dst, src, keepPrivateFields, false)
+			if isSimpleEle {
+				dst.Set(src)
+				continue
+			}
+			if !isIface {
+				reflectClone(dst, src, keepPrivateFields, checkClone)
 				continue
 			}
 
-			if src.Kind() == reflect.Interface {
-				src = src.Elem()
-			}
+			src = src.Elem()
 			ndst := reflect.New(src.Type()).Elem()
-			reflectClone(ndst, src, keepPrivateFields, false)
+			reflectClone(ndst, src, keepPrivateFields, checkClone)
 			dst.Set(ndst)
 
 		}
 
 	case reflect.Map:
-		if src.IsNil() {
-			return
-		}
-
 		dst.Set(reflect.MakeMapWithSize(styp, src.Len()))
+		isIface := styp.Elem().Kind() == reflect.Interface
+		checkClone := isIface || hasCloner(styp.Elem()) != math.MaxInt
+		simpleKey := isSimple(styp.Key().Kind())
+		simpleValue := isSimple(styp.Elem().Kind())
 		for it := src.MapRange(); it.Next(); {
-			mk, mv := maybeCopy(it.Key(), keepPrivateFields), maybeCopy(it.Value(), keepPrivateFields)
+			var mk, mv reflect.Value
+			if simpleKey {
+				mk = it.Key()
+			} else {
+				mk = maybeCopy(it.Key(), keepPrivateFields, checkClone)
+			}
+			if simpleValue {
+				mv = it.Value()
+			} else {
+				mv = maybeCopy(it.Value(), keepPrivateFields, checkClone)
+			}
 			dst.SetMapIndex(mk, mv)
 		}
 
 	case reflect.Struct:
+		if isSimpleStruct(styp) {
+			dst.Set(src)
+			return
+		}
 		if keepPrivateFields {
 			dst.Set(src) // copy private fields
 		} else {
@@ -138,16 +143,21 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields, checkClone bool) {
 
 		for i := 0; i < styp.NumField(); i++ {
 			if f := dst.Field(i); f.CanSet() {
-				reflectClone(dst.Field(i), src.Field(i), keepPrivateFields, true)
+				if isSimple(f.Kind()) {
+					dst.Field(i).Set(src.Field(i))
+				} else {
+					reflectClone(dst.Field(i), src.Field(i), keepPrivateFields, true)
+				}
 			}
 		}
 
 	case reflect.Ptr:
-		if src.IsNil() {
-			return
-		}
 		ndst := reflect.New(styp.Elem())
-		reflectClone(ndst.Elem(), src.Elem(), keepPrivateFields, true)
+		if nde := ndst.Elem(); isSimple(nde.Kind()) {
+			nde.Set(src.Elem())
+		} else {
+			reflectClone(nde, src.Elem(), keepPrivateFields, true)
+		}
 		dst.Set(ndst)
 
 	default:
@@ -155,28 +165,60 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields, checkClone bool) {
 	}
 }
 
-func maybeCopy(src reflect.Value, copyPrivate bool) reflect.Value {
+func isSimpleStruct(t reflect.Type) bool {
+	cloneCache.RLock()
+	v, ok := cloneCache.structs[t]
+	cloneCache.RUnlock()
+	if ok {
+		return v
+	}
+	cloneCache.Lock()
+	defer cloneCache.Unlock()
+
+	for i := 0; i < t.NumField(); i++ {
+		if !isSimple(t.Field(i).Type.Kind()) {
+			cloneCache.structs[t] = false
+			return false
+		}
+	}
+	cloneCache.structs[t] = true
+	return true
+}
+
+func isSimple(k reflect.Kind) bool {
+	switch k {
+	case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128,
+		reflect.String:
+		return true
+	default:
+		return false
+	}
+}
+
+func maybeCopy(src reflect.Value, copyPrivate, checkClone bool) reflect.Value {
 	switch src.Kind() {
 	case reflect.Ptr, reflect.Array, reflect.Slice, reflect.Map, reflect.Struct:
 		nv := reflect.New(src.Type()).Elem()
-		reflectClone(nv, src, copyPrivate, hasCloner(nv.Type()) > 0)
+		reflectClone(nv, src, copyPrivate, checkClone)
 		return nv
 	case reflect.Interface:
-		return maybeCopy(src.Elem(), copyPrivate)
+		return maybeCopy(src.Elem(), copyPrivate, true)
 	default:
 		return src
 	}
 }
 
-func cloneVal(dst, src reflect.Value, cv int) bool {
-	var m reflect.Value
-	switch cv {
-	case 1:
-		m = src.MethodByName("Clone")
-	case 2:
-		m = src.Addr().MethodByName("Clone")
-	default:
+func cloneVal(dst, src reflect.Value, idx int) bool {
+	if idx == math.MaxInt {
 		return false
+	}
+	var m reflect.Value
+	if idx > 0 {
+		m = src.Method(idx - 1)
+	} else {
+		m = src.Addr().Method(-idx - 1)
 	}
 
 	v := m.Call(nil)[0]

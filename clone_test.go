@@ -15,6 +15,7 @@ type cloneStruct struct {
 	PtrPtrPtr ***int
 	NilPtr    *int
 
+	SA []any
 	S  string
 	X  []int
 	A  [5]uint64
@@ -22,6 +23,8 @@ type cloneStruct struct {
 	C  cloner
 	C2 *cloner
 	C3 cloner0
+
+	SS simpleStruct
 }
 
 func (c cloneStruct) XV() int {
@@ -52,6 +55,13 @@ func (c cloner0) Clone() cloner0 {
 	return c
 }
 
+type simpleStruct struct {
+	A int
+	B int64
+	C string
+	D bool
+}
+
 func TestBug01(t *testing.T) {
 	s := bugSlice{cloneStruct{x: 42}, &cloneStruct{x: 42}}
 	c := Clone(s, true)
@@ -62,6 +72,7 @@ func TestClone(t *testing.T) {
 	n := 42
 	pn := &n
 	ppn := &pn
+	var nilMap map[string]any
 	src := &cloneStruct{
 		S: "string",
 		X: []int{1, 2, 3, 6, 8, 9},
@@ -73,12 +84,14 @@ func TestClone(t *testing.T) {
 		PtrPtr:    ppn,
 		PtrPtrPtr: &ppn,
 		A:         [5]uint64{1 << 2, 1 << 4, 1 << 6, 1 << 8, 1 << 10},
-
-		x: n,
+		SA:        []any{1, 2.2, "string", []int{1, 2, 3, 6, 8, 9}, nilMap},
+		x:         n,
 
 		C:  cloner{A: 420},
 		C2: &cloner{A: 420},
 		C3: cloner0{420, false},
+
+		SS: simpleStruct{1, 2, "3", true},
 	}
 
 	dst := Clone(src, true)
@@ -148,11 +161,13 @@ func BenchmarkClone(b *testing.B) {
 		Ptr:    pn,
 		PtrPtr: ppn,
 		A:      [5]uint64{1 << 2, 1 << 4, 1 << 6, 1 << 8, 1 << 10},
-
-		x: n,
+		SA:     []any{1, 2.2, "string", []int{1, 2, 3, 6, 8, 9}},
+		x:      n,
 
 		C:  cloner{A: 420},
 		C2: &cloner{A: 420},
+
+		SS: simpleStruct{1, 2, "3", true},
 	}
 
 	b.Run("Fn", func(b *testing.B) {
@@ -164,11 +179,12 @@ func BenchmarkClone(b *testing.B) {
 			}
 		})
 	})
+
 	b.Run("JSON", func(b *testing.B) {
 		b.RunParallel(func(p *testing.PB) {
 			for p.Next() {
 				var ss cloneStruct
-				j, _ := json.Marshal(&s)
+				j, _ := json.Marshal(s)
 				if err := json.Unmarshal(j, &ss); err != nil {
 					b.Fatal(err)
 				}
