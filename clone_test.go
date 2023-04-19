@@ -170,25 +170,11 @@ func BenchmarkClone(b *testing.B) {
 		SS: simpleStruct{1, 2, "3", true},
 	}
 
-	b.Run("Fn", func(b *testing.B) {
-		b.RunParallel(func(p *testing.PB) {
-			for p.Next() {
-				if Clone(s, true) == nil {
-					b.Fatal("nil")
-				}
+	b.RunParallel(func(p *testing.PB) {
+		for p.Next() {
+			if Clone(s, true) == nil {
+				b.Fatal("nil")
 			}
-		})
-	})
-
-	b.Run("JSON", func(b *testing.B) {
-		b.RunParallel(func(p *testing.PB) {
-			for p.Next() {
-				var ss cloneStruct
-				j, _ := json.Marshal(s)
-				if err := json.Unmarshal(j, &ss); err != nil {
-					b.Fatal(err)
-				}
-			}
-		})
+		}
 	})
 }
