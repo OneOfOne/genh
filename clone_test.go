@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"reflect"
 	"testing"
+
+	"go.oneofone.dev/genh/gsets"
 )
 
 type cloneStruct struct {
@@ -148,33 +150,122 @@ func TestClone(t *testing.T) {
 var cloneSink *cloneStruct
 
 func BenchmarkClone(b *testing.B) {
-	n := 42
-	pn := &n
-	ppn := &pn
-	s := &cloneStruct{
-		S: "string",
-		X: []int{1, 2, 3, 6, 8, 9},
-		Y: map[string]any{
-			"x": 1, "y": 2.2,
-			"z": []int{1, 2, 3, 6, 8, 9},
+	bp := &BrandProduct{
+		ReviewLinks: &BrandProductReviewLink{
+			AppleStore: "",
+			GooglePlay: "",
+			Instagram:  "",
+			Leafly:     "",
+			Weedmaps:   "",
 		},
-		Ptr:    pn,
-		PtrPtr: ppn,
-		A:      [5]uint64{1 << 2, 1 << 4, 1 << 6, 1 << 8, 1 << 10},
-		SA:     []any{1, 2.2, "string", []int{1, 2, 3, 6, 8, 9}},
-		x:      n,
-
-		C:  cloner{A: 420},
-		C2: &cloner{A: 420},
-
-		SS: simpleStruct{1, 2, "3", true},
+		Mappings: map[string][]string{
+			"a": {"b", "c", "d"},
+			"b": {"b", "c", "d"},
+			"c": {"b", "c", "d"},
+		},
+		AltNames:        gsets.Of("a", "b", "c", "d"),
+		Batches:         make([]*BrandProductBatch, 1024),
+		RelatedProducts: make([]*BrandProductRelated, 1024),
 	}
-
+	for i := 0; i < 1024; i++ {
+		bp.Batches[i] = &BrandProductBatch{
+			Collectibles: make([]*Collectible, 1024),
+		}
+		bp.RelatedProducts[i] = &BrandProductRelated{}
+	}
+	_ = bp
 	b.RunParallel(func(p *testing.PB) {
+		var cloneSink BrandProduct
 		for p.Next() {
-			if Clone(s, true) == nil {
-				b.Fatal("nil")
-			}
+			j, _ := json.Marshal(bp)
+			json.Unmarshal(j, &cloneSink)
+			// if Clone(bp, true) == nil {
+			// 	b.Fatal("nil")
+			// }
 		}
 	})
+}
+
+type BrandProduct struct {
+	ReviewLinks *BrandProductReviewLink `json:"reviewLinks,omitempty"`
+	Mappings    map[string][]string     `json:"sourceMapping,omitempty"`
+	UserID      string                  `json:"userID,omitempty"`
+	Name        string                  `json:"name,omitempty"`
+	// AltNames are used to map other products to this one during brands-analysis, e.g., when different retailers have different names for this product
+	AltNames          gsets.Strings          `json:"altNames,omitempty"`
+	Brand             string                 `json:"brand,omitempty"`
+	Category          string                 `json:"category,omitempty"`
+	SubCategory       string                 `json:"subCategory,omitempty"`
+	Sku               string                 `json:"sku,omitempty"`
+	ProductShopURL    string                 `json:"productShopURL,omitempty"`
+	ProductImageURL   string                 `json:"productImageURL,omitempty"`
+	ID                string                 `json:"id,omitempty"`
+	Description       string                 `json:"description,omitempty"`
+	Platform          string                 `json:"platform,omitempty"`
+	Batches           []*BrandProductBatch   `json:"batches,omitempty"`
+	RelatedProducts   []*BrandProductRelated `json:"relatedProducts,omitempty"`
+	UpdatedAt         int64                  `json:"updated_at,omitempty"`
+	AvgRetailPrice    float64                `json:"avgRetailPrice,omitempty"`
+	AvgWholesalePrice float64                `json:"avgWholesalePrice,omitempty"`
+	CreatedAt         int64                  `json:"created_at,omitempty"`
+	IsReviewed        bool                   `json:"isReviewed,omitempty"`
+	HideBatchInfo     bool                   `json:"hideBatchInfo,omitempty"`
+	Archived          bool                   `json:"archived,omitempty"`
+}
+
+type BrandProductBatch struct {
+	ID              string         `json:"id,omitempty"`
+	ProdBatchNum    string         `json:"prodBatchNum,omitempty"`
+	CannabinoidUnit string         `json:"cannabinoidUnit,omitempty"`
+	RedirectURL     string         `json:"redirectURL,omitempty"`
+	Collectibles    []*Collectible `json:"collectibles,omitempty"`
+	Quantity        int            `json:"quantity,omitempty"`
+	BatchDate       int64          `json:"batchDate,omitempty"`
+	ThcPercent      float64        `json:"thcPercent,omitempty"`
+	ThcaPercent     float64        `json:"thcaPercent,omitempty"`
+	CbdaPercent     float64        `json:"cbdaPercent,omitempty"`
+	CbcPercent      float64        `json:"cbcPercent,omitempty"`
+	CbePercent      float64        `json:"cbePercent,omitempty"`
+	CbgPercent      float64        `json:"cbgPercent,omitempty"`
+	CbnPercent      float64        `json:"cbnPercent,omitempty"`
+	Delta8Percent   float64        `json:"delta8Percent,omitempty"`
+	TotalTHC        float64        `json:"totalTHC,omitempty"`
+	TotalCanna      float64        `json:"totalCanna,omitempty"`
+	CbdPercent      float64        `json:"cbdPercent,omitempty"`
+	ShouldRedirect  bool           `json:"shouldRedirect,omitempty"`
+}
+
+type Collectible struct {
+	ID         string  `json:"id"`
+	SrcID      string  `json:"srcID,omitempty"`
+	URL        string  `json:"url,omitempty"`
+	ProductID  string  `json:"productID"`
+	BatchID    string  `json:"batchID"`
+	QR         []byte  `json:"qr,omitempty"`
+	Rating     float64 `json:"rating,omitempty"`
+	RedeemedAt int64   `json:"redeemedAt,omitempty"`
+	Redeemed   bool    `json:"redeemed,omitempty"`
+}
+
+type BrandTemplate struct {
+	UserID              string                 `json:"userID"`
+	CollectibleRedirect string                 `json:"collectibleRedirect"`
+	RelatedProducts     []*BrandProductRelated `json:"relatedProducts"`
+	Accrual             float64                `json:"accrual,omitempty"`
+	Created             int64                  `json:"created,omitempty" ts:"date,null"`
+	Updated             int64                  `json:"updated,omitempty" ts:"date,null"`
+}
+
+type BrandProductRelated struct {
+	Name     string `json:"name,omitempty"`
+	ImageURL string `json:"imageURL,omitempty"`
+	Link     string `json:"link,omitempty"`
+}
+
+type BrandProductReviewLink struct {
+	AppleStore string `json:"appleStore,omitempty"`
+	GooglePlay string `json:"googlePlay,omitempty"`
+	Instagram  string `json:"instagram,omitempty"`
+	Leafly     string `json:"leafly,omitempty"`
+	Weedmaps   string `json:"weedmaps,omitempty"`
 }
