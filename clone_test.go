@@ -175,13 +175,10 @@ func BenchmarkClone(b *testing.B) {
 	}
 	_ = bp
 	b.RunParallel(func(p *testing.PB) {
-		var cloneSink BrandProduct
 		for p.Next() {
-			j, _ := json.Marshal(bp)
-			json.Unmarshal(j, &cloneSink)
-			// if Clone(bp, true) == nil {
-			// 	b.Fatal("nil")
-			// }
+			if Clone(bp, true) == nil {
+				b.Fatal("nil")
+			}
 		}
 	})
 }
