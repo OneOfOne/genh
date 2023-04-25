@@ -19,16 +19,16 @@ func Clone[T any](v T, keepPrivateFields bool) (cp T) {
 		return v.Clone()
 	}
 	src, dst := reflect.ValueOf(v), reflect.ValueOf(&cp).Elem()
-	reflectClone(dst, src, keepPrivateFields)
+	reflectClone(dst, src, keepPrivateFields, false, false)
 	return
 }
 
 func ReflectClone(dst, src reflect.Value, keepPrivateFields bool) {
-	reflectClone(dst, src, keepPrivateFields)
+	reflectClone(dst, src, keepPrivateFields, true, false)
 }
 
-func reflectClone(dst, src reflect.Value, keepPrivateFields bool) {
-	if !src.IsValid() || src.IsZero() {
+func reflectClone(dst, src reflect.Value, keepPrivateFields, checkClone, noMake bool) {
+	if src.IsZero() {
 		return
 	}
 
@@ -38,40 +38,58 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields bool) {
 
 	styp := src.Type()
 
-	// if checkClone && cloneVal(dst, src, isCloner(styp)) {
-	// 	return
-	// }
+	if checkClone {
+		if idx := isCloner(styp); idx != math.MaxInt {
+			cloneVal(dst, src, idx)
+			return
+		}
+	}
 
 	switch styp.Kind() {
 	case reflect.Slice:
 		if src.IsNil() {
 			return
 		}
-		dst.Set(reflect.MakeSlice(styp, src.Len(), src.Cap()))
+
+		if !noMake {
+			dst.Set(reflect.MakeSlice(styp, src.Len(), src.Cap()))
+		}
 		fallthrough
 
 	case reflect.Array:
 		isIface := styp.Elem().Kind() == reflect.Interface
+		isPtr := styp.Elem().Kind() == reflect.Pointer
 		simple := isSimple(styp.Elem().Kind())
-
+		hasClone := isPtr && isCloner(styp.Elem().Elem()) != math.MaxInt
 		for i := 0; i < src.Len(); i++ {
 			dst, src := dst.Index(i), src.Index(i)
-
 			if simple {
 				dst.Set(src)
 				continue
 			}
 
+			if isPtr {
+				if src.IsNil() {
+					continue
+				}
+				src = src.Elem()
+				ndst := reflect.New(src.Type())
+				reflectClone(ndst.Elem(), src, keepPrivateFields, hasClone, false)
+				dst.Set(ndst)
+				continue
+			}
+
 			if !isIface {
-				reflectClone(dst, src, keepPrivateFields)
+				reflectClone(dst, src, keepPrivateFields, true, false)
 				continue
 			}
 
 			src = src.Elem()
-			ndst := reflect.New(src.Type()).Elem()
-			reflectClone(ndst, src, keepPrivateFields)
-			dst.Set(ndst)
-
+			if isSimple(src.Kind()) {
+				dst.Set(src)
+				continue
+			}
+			dst.Set(maybeCopy(src, keepPrivateFields))
 		}
 
 	case reflect.Map:
@@ -81,7 +99,11 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields bool) {
 
 		simpleKey := isSimple(styp.Key().Kind())
 		simpleValue := isSimple(styp.Elem().Kind())
-		dst.Set(reflect.MakeMapWithSize(styp, src.Len()))
+
+		if !noMake {
+			dst.Set(reflect.MakeMapWithSize(styp, src.Len()))
+		}
+
 		for it := src.MapRange(); it.Next(); {
 			var mk, mv reflect.Value
 			if simpleKey {
@@ -98,29 +120,24 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields bool) {
 		}
 
 	case reflect.Struct:
-		if isSimpleStruct(styp) {
-			dst.Set(src)
-			return
-		}
-
-		if idx := isCloner(styp); idx != math.MaxInt {
-			cloneVal(dst, src, idx)
-			return
-		}
-
 		if keepPrivateFields {
 			dst.Set(src) // copy private fields
-		} else {
+		} else if isSimpleStruct(styp) {
+			dst.Set(src)
+			return
+		} else if dst.IsZero() {
 			dst.Set(reflect.New(styp).Elem())
 		}
 
 		for i := 0; i < styp.NumField(); i++ {
 			if f := dst.Field(i); f.CanSet() {
 				if isSimple(f.Kind()) {
-					f.Set(src.Field(i))
+					if !keepPrivateFields {
+						f.Set(src.Field(i))
+					}
 					continue
 				}
-				reflectClone(f, src.Field(i), keepPrivateFields)
+				f.Set(maybeCopy(src.Field(i), keepPrivateFields))
 			}
 		}
 
@@ -128,11 +145,12 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields bool) {
 		if src.IsNil() {
 			return
 		}
+
 		ndst := reflect.New(styp.Elem())
 		if nde := ndst.Elem(); isSimple(nde.Kind()) {
 			nde.Set(src.Elem())
 		} else {
-			reflectClone(nde, src.Elem(), keepPrivateFields)
+			nde.Set(maybeCopy(src.Elem(), keepPrivateFields))
 		}
 		dst.Set(ndst)
 
@@ -166,13 +184,34 @@ func isSimple(k reflect.Kind) bool {
 }
 
 func maybeCopy(src reflect.Value, copyPrivate bool) reflect.Value {
+	if src.IsZero() {
+		return src
+	}
+
 	switch src.Kind() {
-	case reflect.Ptr, reflect.Array, reflect.Slice, reflect.Map, reflect.Struct:
-		nv := reflect.New(src.Type()).Elem()
-		reflectClone(nv, src, copyPrivate)
+	case reflect.Slice:
+		if src.Type().Elem().Kind() == reflect.Uint8 {
+			b := append([]byte(nil), src.Bytes()...)
+			return reflect.ValueOf(b)
+		}
+
+		nv := reflect.MakeSlice(src.Type(), src.Len(), src.Cap())
+		reflectClone(nv, src, copyPrivate, false, true)
 		return nv
+
+	case reflect.Map:
+		nv := reflect.MakeMapWithSize(src.Type(), src.Len())
+		reflectClone(nv, src, copyPrivate, false, true)
+		return nv
+
+	case reflect.Ptr, reflect.Array, reflect.Struct:
+		nv := reflect.New(src.Type()).Elem()
+		reflectClone(nv, src, copyPrivate, true, false)
+		return nv
+
 	case reflect.Interface:
 		return maybeCopy(src.Elem(), copyPrivate)
+
 	default:
 		return src
 	}

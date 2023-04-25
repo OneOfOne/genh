@@ -118,11 +118,16 @@ func TestClone(t *testing.T) {
 		t.Fatal("src.x != dst.x", src.x, dst.x)
 	}
 
+	if dst.X[0] = 42; src.X[0] == 42 {
+		t.Fatal("src.X != dst.X", src.X, dst.X)
+	}
+
 	if !dst.C3.cloned {
 		t.Fatal("!dst.C3.cloned")
 	}
 
 	dst.C3.cloned = false // so the next check passes
+	dst.X[0] = 1
 
 	if !reflect.DeepEqual(src, dst) {
 		j1, _ := json.Marshal(src)
@@ -168,12 +173,17 @@ func BenchmarkClone(b *testing.B) {
 		RelatedProducts: make([]*BrandProductRelated, 1024),
 	}
 	for i := 0; i < 1024; i++ {
+		col := make([]*Collectible, 1024)
+		for x := range col {
+			col[x] = &Collectible{}
+		}
 		bp.Batches[i] = &BrandProductBatch{
-			Collectibles: make([]*Collectible, 1024),
+			Collectibles: col,
 		}
 		bp.RelatedProducts[i] = &BrandProductRelated{}
 	}
 	_ = bp
+	b.ResetTimer()
 	b.RunParallel(func(p *testing.PB) {
 		for p.Next() {
 			if Clone(bp, true) == nil {
@@ -210,6 +220,16 @@ type BrandProduct struct {
 	Archived          bool                   `json:"archived,omitempty"`
 }
 
+// func (bp *BrandProduct) Clone() *BrandProduct {
+// 	out := *bp
+// 	out.ReviewLinks = Clone(bp.ReviewLinks, true)
+// 	out.Mappings = Clone(bp.Mappings, true)
+// 	out.AltNames = bp.AltNames.Clone()
+// 	out.Batches = Clone(bp.Batches, true)
+// 	out.RelatedProducts = Clone(bp.RelatedProducts, true)
+// 	return &out
+// }
+
 type BrandProductBatch struct {
 	ID              string         `json:"id,omitempty"`
 	ProdBatchNum    string         `json:"prodBatchNum,omitempty"`
@@ -232,6 +252,12 @@ type BrandProductBatch struct {
 	ShouldRedirect  bool           `json:"shouldRedirect,omitempty"`
 }
 
+// func (bpb *BrandProductBatch) Clone() *BrandProductBatch {
+// 	out := *bpb
+// 	out.Collectibles = Clone(bpb.Collectibles, true)
+// 	return &out
+// }
+
 type Collectible struct {
 	ID         string  `json:"id"`
 	SrcID      string  `json:"srcID,omitempty"`
@@ -243,6 +269,12 @@ type Collectible struct {
 	RedeemedAt int64   `json:"redeemedAt,omitempty"`
 	Redeemed   bool    `json:"redeemed,omitempty"`
 }
+
+// func (c *Collectible) Clone() *Collectible {
+// 	out := *c
+// 	out.QR = append([]byte(nil), c.QR...)
+// 	return &out
+// }
 
 type BrandTemplate struct {
 	UserID              string                 `json:"userID"`
