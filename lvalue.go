@@ -7,8 +7,8 @@ import (
 
 // LValue wraps a sync.RWMutex to allow simple and safe operation on the mutex.
 type LValue[T any] struct {
-	mux sync.RWMutex
 	v   T
+	mux sync.RWMutex
 }
 
 // Update executes fn while the mutex is write-locked and guarantees the mutex is released even in the case of a panic.

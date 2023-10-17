@@ -10,23 +10,21 @@ import (
 )
 
 type cloneStruct struct {
-	Y map[string]any
-
+	C2        *cloner
 	Ptr       *int
 	PtrPtr    **int
 	PtrPtrPtr ***int
 	NilPtr    *int
-
-	SA []any
-	S  string
-	X  []int
-	A  [5]uint64
-	x  int
-	C  cloner
-	C2 *cloner
-	C3 cloner0
-
-	SS simpleStruct
+	DM        map[string]map[string]*simpleStruct
+	Y         map[string]any
+	S         string
+	SS        simpleStruct
+	X         []int
+	SA        []any
+	A         [5]uint64
+	C3        cloner0
+	x         int
+	C         cloner
 }
 
 func (c cloneStruct) XV() int {
@@ -93,6 +91,11 @@ func TestClone(t *testing.T) {
 		C2: &cloner{A: 420},
 		C3: cloner0{420, false},
 
+		DM: map[string]map[string]*simpleStruct{
+			"1": {"1": {1, 2, "3", true}},
+			"2": {"2": {1, 2, "3", true}},
+			"3": {"3": {1, 2, "3", true}},
+		},
 		SS: simpleStruct{1, 2, "3", true},
 	}
 
