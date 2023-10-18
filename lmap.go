@@ -144,9 +144,7 @@ func (lm *LMap[K, V]) ForEach(fn func(k K, v V) bool) {
 
 func (lm *LMap[K, V]) Clear() {
 	lm.mux.Lock()
-	for k := range lm.m {
-		delete(lm.m, k)
-	}
+	clear(lm.m)
 	lm.mux.Unlock()
 }
 

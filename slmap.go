@@ -137,6 +137,14 @@ func (lm *SLMap[V]) ForEach(fn func(k string, v V) bool) {
 	}
 }
 
+func (lm *SLMap[V]) SetMap(m map[string]V) {
+	lm.initOnce()
+	lm.Clear()
+	for k, v := range m {
+		lm.Set(k, v)
+	}
+}
+
 func (lm *SLMap[V]) Clear() {
 	lm.initOnce()
 	for _, m := range lm.ms {
