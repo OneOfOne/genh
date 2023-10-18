@@ -6,6 +6,8 @@ import (
 	"sync"
 )
 
+// SLMultiMap is segmented multimap that uses NumCPU maps to store data
+// which lowers the lock contention.
 type SLMultiMap[V any] struct {
 	ms []*LMultiMap[string, string, V]
 	s  maphash.Seed
