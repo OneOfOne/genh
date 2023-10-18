@@ -3,9 +3,9 @@ package genh
 import "sync"
 
 type Once[T any] struct {
-	once sync.Once
 	v    T
 	err  error
+	once sync.Once
 }
 
 func (o *Once[T]) Do(fn func() (T, error)) (v T, err error) {

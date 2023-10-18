@@ -14,8 +14,8 @@ func LMapOf[K comparable, V any](m map[K]V) *LMap[K, V] {
 }
 
 type LMap[K comparable, V any] struct {
-	mux sync.RWMutex
 	m   map[K]V
+	mux sync.RWMutex
 }
 
 func (lm *LMap[K, V]) Set(k K, v V) {

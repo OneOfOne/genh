@@ -7,11 +7,11 @@ import (
 )
 
 type tmEle[V any] struct {
-	sync.RWMutex
-	la  atomic.Int64 // last access / read
 	v   V
 	t   *time.Timer
+	la  atomic.Int64
 	ttl time.Duration
+	sync.RWMutex
 }
 
 func (e *tmEle[V]) expired() bool {

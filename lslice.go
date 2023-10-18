@@ -6,8 +6,8 @@ import (
 )
 
 type LSlice[T any] struct {
-	mux sync.RWMutex
 	v   []T
+	mux sync.RWMutex
 }
 
 func (ls *LSlice[T]) Update(fn func(v []T) []T) {

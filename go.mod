@@ -1,6 +1,6 @@
 module go.oneofone.dev/genh
 
-go 1.18
+go 1.21
 
 require github.com/vmihailenco/msgpack/v5 v5.3.5
 

@@ -29,6 +29,7 @@ func TestLists(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	var ll List[S]
 	err = json.Unmarshal(b, &ll)
 	if err != nil {
@@ -183,3 +184,73 @@ func TestListClip(t *testing.T) {
 		t.Fatalf("unexpected, should have been 20, got %d %d", cap(l.Slice()), l.count())
 	}
 }
+
+// func TestSliceList(t *testing.T) {
+// 	var nums []int
+// 	for i := 0; i < 25; i++ {
+// 		nums = append(nums, rand.Int()%100)
+// 	}
+// 	ls := NewSliceList[int](25)
+// 	for _, n := range nums {
+// 		ls.Append(n)
+// 	}
+// 	if !Equal(ls.Slice(), nums) {
+// 		t.Fatal("neq")
+// 	}
+//
+// 	clipped := ls.Clip(false)
+// 	clipped.Append(99999, 5555, 4444)
+//
+// 	j, err := json.Marshal(ls)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	t.Log(string(j))
+// 	j, _ = json.Marshal(clipped)
+// 	t.Log(string(j))
+// 	t.Log(ls.Get(0))
+//
+// 	clipped.Set(25, -999999)
+// 	t.Log(clipped.Get(25))
+// }
+//
+// func BenchmarkSliceList(b *testing.B) {
+// 	b.Run("SliceList.Append", func(b *testing.B) {
+// 		ls := NewSliceList[int](0)
+// 		for i := 0; i < b.N; i++ {
+// 			ls.Append(i)
+// 		}
+// 	})
+// 	b.Run("SliceList.ForEach", func(b *testing.B) {
+// 		ls := NewSliceList[int](0)
+// 		ls.Append(make([]int, 100_000)...)
+// 		b.ResetTimer()
+// 		var sink int
+// 		for i := 0; i < b.N; i++ {
+// 			ls.ForEach(func(v int) bool {
+// 				sink = v
+// 				return true
+// 			})
+// 		}
+// 		_ = sink
+// 	})
+// 	b.Run("List.Append", func(b *testing.B) {
+// 		var ls List[int]
+// 		for i := 0; i < b.N; i++ {
+// 			ls = ls.Append(i)
+// 		}
+// 	})
+// 	b.Run("List.ForEach", func(b *testing.B) {
+// 		ls := NewSliceList[int](0)
+// 		ls.Append(make([]int, 100_000)...)
+// 		b.ResetTimer()
+// 		var sink int
+// 		for i := 0; i < b.N; i++ {
+// 			ls.ForEach(func(v int) bool {
+// 				sink = v
+// 				return true
+// 			})
+// 		}
+// 		_ = sink
+// 	})
+// }
