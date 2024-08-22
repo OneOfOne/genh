@@ -34,6 +34,21 @@ func (tm *TimedMap[K, V]) Set(k K, v V, timeout time.Duration) {
 	tm.m.Set(k, ele)
 }
 
+func (tm *TimedMap[K, V]) MustGet(k K, vfn func() V, timeout time.Duration) (out V) {
+	var ok bool
+	if out, ok = tm.GetOk(k); ok {
+		return
+	}
+	out = vfn()
+	ele := &tmEle[V]{v: out, ttl: timeout}
+	ele.la.Store(time.Now().UnixNano())
+	if timeout > 0 {
+		ele.t = time.AfterFunc(timeout, func() { tm.deleteEle(k, ele) })
+	}
+	tm.m.Set(k, ele)
+	return
+}
+
 func (tm *TimedMap[K, V]) SetUpdateFn(k K, vfn func() V, updateEvery time.Duration) {
 	tm.SetUpdateExpireFn(k, vfn, updateEvery, -1)
 }
