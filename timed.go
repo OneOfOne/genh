@@ -117,6 +117,17 @@ func (tm *TimedMap[K, V]) Delete(k K) {
 	}
 }
 
+func (tm *TimedMap[K, V]) ForEach(fn func(key K, value V) bool) {
+	keys := tm.m.Keys()
+
+	for _, k := range keys {
+		if v, ok := tm.GetOk(k); ok {
+			if !fn(k, v) {
+				return
+			}
+		}
+	}
+}
 func (tm *TimedMap[K, V]) deleteEle(k K, ele *tmEle[V]) {
 	tm.m.Update(func(m map[K]*tmEle[V]) {
 		if m[k] == ele {
