@@ -52,7 +52,7 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields, checkClone, noMake 
 		}
 
 		if !noMake {
-			dst.Set(reflect.MakeSlice(styp, 0, src.Cap()))
+			dst.Set(reflect.MakeSlice(styp, src.Len(), src.Cap()))
 		}
 		fallthrough
 
@@ -62,10 +62,7 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields, checkClone, noMake 
 		simple := isSimple(styp.Elem().Kind())
 		hasClone := isPtr && isCloner(styp.Elem().Elem()) != math.MaxInt
 		for i := 0; i < src.Len(); i++ {
-			src := src.Index(i)
-			if src.Kind() == reflect.Invalid {
-				continue
-			}
+			dst, src := dst.Index(i), src.Index(i)
 			if simple {
 				dst.Set(src)
 				continue
@@ -78,7 +75,7 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields, checkClone, noMake 
 				src = src.Elem()
 				ndst := reflect.New(src.Type())
 				reflectClone(ndst.Elem(), src, keepPrivateFields, hasClone, false)
-				dst = reflect.Append(dst, ndst)
+				dst.Set(ndst)
 				continue
 			}
 
@@ -89,12 +86,10 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields, checkClone, noMake 
 
 			src = src.Elem()
 			if isSimple(src.Kind()) {
-				dst = reflect.Append(dst, src)
+				dst.Set(src)
 				continue
 			}
-			if src.Kind() != reflect.Invalid {
-				dst = reflect.Append(dst, maybeCopy(src, keepPrivateFields))
-			}
+			dst.Set(maybeCopy(src, keepPrivateFields))
 		}
 
 	case reflect.Map:
@@ -189,7 +184,7 @@ func isSimple(k reflect.Kind) bool {
 }
 
 func maybeCopy(src reflect.Value, copyPrivate bool) reflect.Value {
-	if src.Kind() == reflect.Invalid || src.IsZero() {
+	if src.IsZero() {
 		return src
 	}
 
