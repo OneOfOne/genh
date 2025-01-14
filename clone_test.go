@@ -68,6 +68,13 @@ func TestBug01(t *testing.T) {
 	t.Log(c[0].XV(), c[1].XV())
 }
 
+func TestBug02(t *testing.T) {
+	j := []byte(`{"arr":[null, "string"], "nil": null}`)
+	var m map[string]any
+	PanicIf(nil, json.Unmarshal(j, &m))
+	Clone(m, true)
+}
+
 func TestClone(t *testing.T) {
 	n := 42
 	pn := &n

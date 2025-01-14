@@ -184,6 +184,10 @@ func isSimple(k reflect.Kind) bool {
 }
 
 func maybeCopy(src reflect.Value, copyPrivate bool) reflect.Value {
+	if src.Kind() == reflect.Invalid {
+		var a any = nil
+		return reflect.Zero(reflect.TypeOf(&a))
+	}
 	if src.IsZero() {
 		return src
 	}
