@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"hash/maphash"
+	"iter"
 	"runtime"
 	"sync"
 )
@@ -74,7 +75,20 @@ func (lm *SLMap[V]) Keys() (keys []string) {
 	for _, m := range lm.ms {
 		keys = append(keys, m.Keys()...)
 	}
-	return
+	return keys
+}
+
+func (lm *SLMap[V]) KeysSeq() iter.Seq[string] {
+	lm.initOnce()
+	return func(yield func(string) bool) {
+		for _, m := range lm.ms {
+			for key := range m.KeysSeq() {
+				if !yield(key) {
+					return
+				}
+			}
+		}
+	}
 }
 
 func (lm *SLMap[V]) Values() (values []V) {
@@ -87,7 +101,7 @@ func (lm *SLMap[V]) Values() (values []V) {
 	for _, m := range lm.ms {
 		values = append(values, m.Values()...)
 	}
-	return
+	return values
 }
 
 func (lm *SLMap[V]) Clone() (out map[string]V) {
@@ -103,7 +117,7 @@ func (lm *SLMap[V]) Clone() (out map[string]V) {
 			return true
 		})
 	}
-	return
+	return out
 }
 
 func (lm *SLMap[V]) Update(fn func(m map[string]V)) {
@@ -157,7 +171,7 @@ func (lm *SLMap[V]) Len() (ln int) {
 	for _, m := range lm.ms {
 		ln += m.Len()
 	}
-	return
+	return ln
 }
 
 func (lm *SLMap[V]) MarshalJSON() (_ []byte, err error) {
@@ -189,12 +203,12 @@ func (lm *SLMap[V]) MarshalJSON() (_ []byte, err error) {
 func (lm *SLMap[V]) UnmarshalJSON(p []byte) (err error) {
 	var m map[string]V
 	if err = json.Unmarshal(p, &m); err != nil {
-		return
+		return err
 	}
 	for k, v := range m {
 		lm.Set(k, v)
 	}
-	return
+	return err
 }
 
 func (lm *SLMap[V]) MarshalBinary() (_ []byte, err error) {
@@ -224,7 +238,7 @@ func (lm *SLMap[V]) UnmarshalBinary(p []byte) error {
 	if err != nil {
 		return err
 	}
-	for i := 0; i < ln; i++ {
+	for range ln {
 		k, err := dec.DecodeString()
 		if err != nil {
 			return err

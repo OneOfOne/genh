@@ -9,7 +9,7 @@ func GroupBy[M ~map[MapKey]MapVal, GM map[MapKey][]MapVal, MapKey comparable, Ma
 	for k := range out {
 		out[k] = Clip(out[k])
 	}
-	return
+	return out
 }
 
 // Filter filters a slice optionally in place.
@@ -38,7 +38,7 @@ func SliceMap[S ~[]E, E, T any](in S, fn func(E) T) []T {
 	return Clip(out)
 }
 
-// SliceMap takes a slice of type E, calls fn on each value of `in` and returns the modified in or a copy of it
+// SliceMapSameType takes a slice of type E, calls fn on each value of `in` and returns the modified in or a copy of it
 func SliceMapSameType[S ~[]E, E any](in S, fn func(E) E, inplace bool) (out S) {
 	if inplace {
 		out = in[:0]
@@ -64,7 +64,7 @@ func SliceMapFilter[S ~[]E, E, T any](in S, fn func(E) (val T, ignore bool)) []T
 	return Clip(out)
 }
 
-// SliceMapFilter merged SliceMapSameType and Filter
+// SliceMapFilterSameType merged SliceMapSameType and Filter
 func SliceMapFilterSameType[S ~[]E, E any](in S, fn func(E) (val E, ignore bool), inplace bool) (out S) {
 	if inplace {
 		out = in[:0]

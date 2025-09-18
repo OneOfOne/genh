@@ -20,7 +20,7 @@ func Clone[T any](v T, keepPrivateFields bool) (cp T) {
 	}
 	src, dst := reflect.ValueOf(v), reflect.ValueOf(&cp).Elem()
 	reflectClone(dst, src, keepPrivateFields, false, false)
-	return
+	return cp
 }
 
 func ReflectClone(dst, src reflect.Value, keepPrivateFields bool) {
@@ -61,7 +61,7 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields, checkClone, noMake 
 		isPtr := styp.Elem().Kind() == reflect.Pointer
 		simple := isSimple(styp.Elem().Kind())
 		hasClone := isPtr && isCloner(styp.Elem().Elem()) != math.MaxInt
-		for i := 0; i < src.Len(); i++ {
+		for i := range src.Len() {
 			dst, src := dst.Index(i), src.Index(i)
 			if simple {
 				dst.Set(src)
@@ -141,7 +141,7 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields, checkClone, noMake 
 			}
 		}
 
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if src.IsNil() {
 			return
 		}
@@ -208,7 +208,7 @@ func maybeCopy(src reflect.Value, copyPrivate bool) reflect.Value {
 		reflectClone(nv, src, copyPrivate, false, true)
 		return nv
 
-	case reflect.Ptr, reflect.Array, reflect.Struct:
+	case reflect.Pointer, reflect.Array, reflect.Struct:
 		nv := reflect.New(src.Type()).Elem()
 		reflectClone(nv, src, copyPrivate, true, false)
 		return nv
@@ -227,7 +227,7 @@ func isCloner(t reflect.Type) int {
 		v := math.MaxInt
 		if idx := cloneIdx(t); idx != math.MaxInt {
 			v = idx + 1
-		} else if idx := cloneIdx(reflect.PtrTo(t)); idx != math.MaxInt {
+		} else if idx := cloneIdx(reflect.PointerTo(t)); idx != math.MaxInt {
 			v = -(idx + 1)
 		}
 		return v
@@ -263,7 +263,7 @@ func cloneVal(dst, src reflect.Value, idx int) bool {
 	}
 
 	v := m.Call(nil)[0]
-	if v.Kind() == reflect.Ptr && dst.Kind() != reflect.Ptr {
+	if v.Kind() == reflect.Pointer && dst.Kind() != reflect.Pointer {
 		v = v.Elem()
 	}
 

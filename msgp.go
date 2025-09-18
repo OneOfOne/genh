@@ -28,7 +28,7 @@ func DecodeMsgpack(r io.Reader, vs ...any) error {
 	return internal.DecodeMsgpack(r, vs...)
 }
 
-// NewMsgpackDecoder returns a new Decoder that writes to w.
+// NewMsgpackEncoder returns a new Decoder that writes to w.
 // uses json CustomStructTag, compact floats and ints.
 func NewMsgpackEncoder(w io.Writer) *MsgpackEncoder {
 	return internal.NewMsgpackEncoder(w)

@@ -162,8 +162,6 @@ func TestClone(t *testing.T) {
 	}
 }
 
-var cloneSink *cloneStruct
-
 func BenchmarkClone(b *testing.B) {
 	bp := &BrandProduct{
 		ReviewLinks: &BrandProductReviewLink{
@@ -182,7 +180,7 @@ func BenchmarkClone(b *testing.B) {
 		Batches:         make([]*BrandProductBatch, 1024),
 		RelatedProducts: make([]*BrandProductRelated, 1024),
 	}
-	for i := 0; i < 1024; i++ {
+	for i := range 1024 {
 		col := make([]*Collectible, 1024)
 		for x := range col {
 			col[x] = &Collectible{}

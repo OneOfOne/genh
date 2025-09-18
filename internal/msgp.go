@@ -1,3 +1,4 @@
+// Package internal provides internal utilities for message pack encoding and decoding.
 package internal
 
 import (
@@ -66,7 +67,7 @@ func DecodeMsgpack(r io.Reader, vs ...any) error {
 	return err
 }
 
-// NewMsgpackDecoder returns a new Decoder that writes to w.
+// NewMsgpackEncoder returns a new Decoder that writes to w.
 // uses json CustomStructTag, compact floats and ints.
 func NewMsgpackEncoder(w io.Writer) *MsgpackEncoder {
 	enc := encPool.Get().(*MsgpackEncoder)

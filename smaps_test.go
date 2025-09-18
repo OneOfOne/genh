@@ -15,9 +15,9 @@ func BenchmarkLMaps(b *testing.B) {
 	}
 	b.Run("LMap", func(b *testing.B) {
 		var m LMap[string, int]
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			var wg sync.WaitGroup
-			for j := 0; j < N; j++ {
+			for j := range N {
 				wg.Add(1)
 				j := j % len(keys)
 				go func() {
@@ -32,9 +32,9 @@ func BenchmarkLMaps(b *testing.B) {
 	})
 	b.Run("SLMap", func(b *testing.B) {
 		var m SLMap[int]
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			var wg sync.WaitGroup
-			for j := 0; j < N; j++ {
+			for j := range N {
 				wg.Add(1)
 				j := j % len(keys)
 				go func() {
@@ -57,9 +57,9 @@ func BenchmarkLMultiMaps(b *testing.B) {
 	}
 	b.Run("LMultiMap", func(b *testing.B) {
 		var m LMultiMap[string, string, int]
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			var wg sync.WaitGroup
-			for j := 0; j < N; j++ {
+			for j := range N {
 				wg.Add(1)
 				j := j % len(keys)
 				go func() {
@@ -74,9 +74,9 @@ func BenchmarkLMultiMaps(b *testing.B) {
 	})
 	b.Run("SLMultiMap", func(b *testing.B) {
 		var m SLMultiMap[int]
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			var wg sync.WaitGroup
-			for j := 0; j < N; j++ {
+			for j := range N {
 				wg.Add(1)
 				j := j % len(keys)
 				go func() {

@@ -2,9 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package slices defines various functions useful with slices of any type.
-// Unless otherwise specified, these functions all apply to the elements
-// of a slice at index 0 <= i < len(s).
 package genh
 
 // Equal reports whether two slices are equal: the same length and all

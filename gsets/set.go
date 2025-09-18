@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"iter"
+	"maps"
 	"sort"
 	"unsafe"
 
@@ -16,7 +18,7 @@ func Of[T internal.Ordered](keys ...T) Set[T] {
 	return s
 }
 
-// Set[T] is a simple set.
+// Set is a simple set.
 type Set[T internal.Ordered] map[T]struct{}
 
 func (s Set[T]) init() Set[T] {
@@ -26,12 +28,28 @@ func (s Set[T]) init() Set[T] {
 	return s
 }
 
+func (s *Set[T]) SetSeq(keys iter.Seq[T]) Set[T] {
+	ss := s.AddSeq(keys)
+	if *s == nil {
+		*s = ss
+	}
+	return ss
+}
+
 func (s *Set[T]) Set(keys ...T) Set[T] {
 	ss := s.Add(keys...)
 	if *s == nil {
 		*s = ss
 	}
 	return ss
+}
+
+func (s Set[T]) AddSeq(keys iter.Seq[T]) Set[T] {
+	s = s.init()
+	for k := range keys {
+		s[k] = struct{}{}
+	}
+	return s
 }
 
 func (s Set[T]) Add(keys ...T) Set[T] {
@@ -58,9 +76,7 @@ func (s *Set[T]) AddIfNotExists(key T) bool {
 
 func (s Set[T]) Clone() Set[T] {
 	ns := make(Set[T], len(s))
-	for k, v := range s {
-		ns[k] = v
-	}
+	maps.Copy(ns, s)
 	return ns
 }
 
@@ -173,7 +189,7 @@ func (s *Set[T]) UnmarshalJSON(data []byte) (err error) {
 	if err = json.Unmarshal(data, &keys); err == nil {
 		s.Set(keys...)
 	}
-	return
+	return err
 }
 
 func (s Set[T]) MarshalBinary() ([]byte, error) {
@@ -186,5 +202,5 @@ func (s *Set[T]) UnmarshalBinary(data []byte) (err error) {
 	if err = internal.UnmarshalMsgpack(data, &keys); err == nil {
 		*s = Of(keys...)
 	}
-	return
+	return err
 }

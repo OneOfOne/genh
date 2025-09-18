@@ -1,3 +1,4 @@
+// Package genh provides generic helpers.
 package genh
 
 import "sync"

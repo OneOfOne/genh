@@ -2,6 +2,7 @@ package genh
 
 import (
 	"encoding/json"
+	"iter"
 	"sync"
 )
 
@@ -61,25 +62,37 @@ func (lm *LMap[K, V]) DeleteGet(k K) V {
 	return v
 }
 
+func (lm *LMap[K, V]) KeysSeq() (keys iter.Seq[K]) {
+	return func(yield func(K) bool) {
+		lm.mux.RLock()
+		defer lm.mux.RUnlock()
+		for key := range lm.m {
+			if !yield(key) {
+				return
+			}
+		}
+	}
+}
+
 func (lm *LMap[K, V]) Keys() (keys []K) {
 	lm.mux.RLock()
 	keys = MapKeys(lm.m)
 	lm.mux.RUnlock()
-	return
+	return keys
 }
 
 func (lm *LMap[K, V]) Values() (values []V) {
 	lm.mux.RLock()
 	values = MapValues(lm.m)
 	lm.mux.RUnlock()
-	return
+	return values
 }
 
 func (lm *LMap[K, V]) Clone() (m map[K]V) {
 	lm.mux.RLock()
 	m = MapClone(lm.m)
 	lm.mux.RUnlock()
-	return
+	return m
 }
 
 func (lm *LMap[K, V]) Update(fn func(m map[K]V)) {
@@ -98,7 +111,7 @@ func (lm *LMap[K, V]) Get(k K) (v V) {
 	lm.mux.RLock()
 	v = lm.m[k]
 	lm.mux.RUnlock()
-	return
+	return v
 }
 
 func (lm *LMap[K, V]) MustGet(k K, fn func() V) V {
@@ -153,14 +166,14 @@ func (lm *LMap[K, V]) SetMap(m map[K]V) (old map[K]V) {
 	old = lm.m
 	lm.m = m
 	lm.mux.Unlock()
-	return
+	return old
 }
 
 func (lm *LMap[K, V]) Len() (v int) {
 	lm.mux.RLock()
 	v = len(lm.m)
 	lm.mux.RUnlock()
-	return
+	return v
 }
 
 func (lm *LMap[K, V]) Raw() map[K]V {

@@ -155,10 +155,10 @@ func (*noCopy) unlock() {}
 func unmarshalJSON[T any](b []byte, stFn func(T)) (err error) {
 	var val T
 	if err = json.Unmarshal(b, val); err != nil {
-		return
+		return err
 	}
 	stFn(val)
-	return
+	return err
 }
 
 func marshalBinaryI[T Signed](val T) ([]byte, error) {

@@ -14,9 +14,8 @@ import (
 // These benchmarks compare sorting a large slice of int with sort.Ints vs.
 // slices.Sort
 func makeRandomInts(n int) []int {
-	rand.Seed(42)
 	ints := make([]int, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		ints[i] = rand.Intn(n)
 	}
 	return ints
@@ -24,7 +23,7 @@ func makeRandomInts(n int) []int {
 
 func makeSortedInts(n int) []int {
 	ints := make([]int, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		ints[i] = i
 	}
 	return ints
@@ -32,7 +31,7 @@ func makeSortedInts(n int) []int {
 
 func makeReversedInts(n int) []int {
 	ints := make([]int, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		ints[i] = n - i
 	}
 	return ints
@@ -41,7 +40,7 @@ func makeReversedInts(n int) []int {
 const N = 100_000
 
 func BenchmarkSortInts(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		b.StopTimer()
 		ints := makeRandomInts(N)
 		b.StartTimer()
@@ -50,7 +49,7 @@ func BenchmarkSortInts(b *testing.B) {
 }
 
 func BenchmarkSlicesSortInts(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		b.StopTimer()
 		ints := makeRandomInts(N)
 		b.StartTimer()
@@ -59,7 +58,7 @@ func BenchmarkSlicesSortInts(b *testing.B) {
 }
 
 func BenchmarkSlicesSortInts_Sorted(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		b.StopTimer()
 		ints := makeSortedInts(N)
 		b.StartTimer()
@@ -68,7 +67,7 @@ func BenchmarkSlicesSortInts_Sorted(b *testing.B) {
 }
 
 func BenchmarkSlicesSortInts_Reversed(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		b.StopTimer()
 		ints := makeReversedInts(N)
 		b.StartTimer()
@@ -97,13 +96,12 @@ func TestIntSorts(t *testing.T) {
 // makeRandomStrings generates n random strings with alphabetic runes of
 // varying lenghts.
 func makeRandomStrings(n int) []string {
-	rand.Seed(42)
 	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	ss := make([]string, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		var sb strings.Builder
 		slen := 2 + rand.Intn(50)
-		for j := 0; j < slen; j++ {
+		for range slen {
 			sb.WriteRune(letters[rand.Intn(len(letters))])
 		}
 		ss[i] = sb.String()
@@ -126,7 +124,7 @@ func TestStringSorts(t *testing.T) {
 }
 
 func BenchmarkSortStrings(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		b.StopTimer()
 		ss := makeRandomStrings(N)
 		b.StartTimer()
@@ -135,7 +133,7 @@ func BenchmarkSortStrings(b *testing.B) {
 }
 
 func BenchmarkSlicesSortStrings(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		b.StopTimer()
 		ss := makeRandomStrings(N)
 		b.StartTimer()
@@ -157,9 +155,8 @@ func (s myStructs) Less(i, j int) bool { return s[i].n < s[j].n }
 func (s myStructs) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 func makeRandomStructs(n int) myStructs {
-	rand.Seed(42)
 	structs := make([]*myStruct, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		structs[i] = &myStruct{n: rand.Intn(n)}
 	}
 	return structs
@@ -183,7 +180,7 @@ func TestStructSorts(t *testing.T) {
 }
 
 func BenchmarkSortStructs(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		b.StopTimer()
 		ss := makeRandomStructs(N)
 		b.StartTimer()
@@ -193,7 +190,7 @@ func BenchmarkSortStructs(b *testing.B) {
 
 func BenchmarkSortFuncStructs(b *testing.B) {
 	lessFunc := func(a, b *myStruct) bool { return a.n < b.n }
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		b.StopTimer()
 		ss := makeRandomStructs(N)
 		b.StartTimer()
