@@ -65,7 +65,9 @@ type simpleStruct struct {
 func TestBug01(t *testing.T) {
 	s := bugSlice{cloneStruct{x: 42}, &cloneStruct{x: 42}}
 	c := Clone(s, true)
-	t.Log(c[0].XV(), c[1].XV())
+	if c[0].XV() != 42 || c[1].XV() != 42 {
+		t.Fatal("c[0].XV() != 42 || c[1].XV() != 42")
+	}
 }
 
 func TestBug02(t *testing.T) {

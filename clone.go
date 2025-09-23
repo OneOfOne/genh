@@ -3,11 +3,14 @@ package genh
 import (
 	"math"
 	"reflect"
+	"unsafe"
+
+	"go.oneofone.dev/genh/gsets"
 )
 
 var (
-	structCache SLMap[bool]
-	cloneCache  SLMap[int]
+	structCache LMap[reflect.Type, bool]
+	cloneCache  LMap[reflect.Type, int]
 )
 
 type Cloner[T any] interface {
@@ -73,9 +76,9 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields, checkClone, noMake 
 					continue
 				}
 				src = src.Elem()
-				ndst := reflect.New(src.Type())
+				ndst := reflect.NewAt(src.Type(), unsafe.Pointer(dst.UnsafeAddr()))
 				reflectClone(ndst.Elem(), src, keepPrivateFields, hasClone, false)
-				dst.Set(ndst)
+				// dst.Set(ndst)
 				continue
 			}
 
@@ -89,7 +92,7 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields, checkClone, noMake 
 				dst.Set(src)
 				continue
 			}
-			dst.Set(maybeCopy(src, keepPrivateFields))
+			dst.Set(maybeCopy(src, dst, keepPrivateFields))
 		}
 
 	case reflect.Map:
@@ -109,12 +112,12 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields, checkClone, noMake 
 			if simpleKey {
 				mk = it.Key()
 			} else {
-				mk = maybeCopy(it.Key(), keepPrivateFields)
+				mk = maybeCopy(it.Key(), zero, keepPrivateFields)
 			}
 			if simpleValue {
 				mv = it.Value()
 			} else {
-				mv = maybeCopy(it.Value(), keepPrivateFields)
+				mv = maybeCopy(it.Value(), zero, keepPrivateFields)
 			}
 			dst.SetMapIndex(mk, mv)
 		}
@@ -126,10 +129,10 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields, checkClone, noMake 
 			dst.Set(src)
 			return
 		} else if dst.IsZero() {
-			dst.Set(reflect.New(styp).Elem())
+			dst.Set(reflect.NewAt(styp, unsafe.Pointer(dst.UnsafeAddr())).Elem())
 		}
 
-		for i := 0; i < styp.NumField(); i++ {
+		for i := range styp.NumField() {
 			if f := dst.Field(i); f.CanSet() {
 				if isSimple(f.Kind()) {
 					if !keepPrivateFields {
@@ -137,7 +140,7 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields, checkClone, noMake 
 					}
 					continue
 				}
-				f.Set(maybeCopy(src.Field(i), keepPrivateFields))
+				f.Set(maybeCopy(src.Field(i), dst.Field(i), keepPrivateFields))
 			}
 		}
 
@@ -150,7 +153,7 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields, checkClone, noMake 
 		if nde := ndst.Elem(); isSimple(nde.Kind()) {
 			nde.Set(src.Elem())
 		} else {
-			nde.Set(maybeCopy(src.Elem(), keepPrivateFields))
+			nde.Set(maybeCopy(src.Elem(), dst.Elem(), keepPrivateFields))
 		}
 		dst.Set(ndst)
 
@@ -160,9 +163,8 @@ func reflectClone(dst, src reflect.Value, keepPrivateFields, checkClone, noMake 
 }
 
 func isSimpleStruct(t reflect.Type) bool {
-	key := t.Name()
-	return structCache.MustGet(key, func() bool {
-		for i := 0; i < t.NumField(); i++ {
+	return structCache.MustGet(t, func() bool {
+		for i := range t.NumField() {
 			if !isSimple(t.Field(i).Type.Kind()) {
 				return false
 			}
@@ -171,22 +173,23 @@ func isSimpleStruct(t reflect.Type) bool {
 	})
 }
 
+var simpleKinds = gsets.Of(reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+	reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+	reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128,
+	reflect.String)
+
 func isSimple(k reflect.Kind) bool {
-	switch k {
-	case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-		reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128,
-		reflect.String:
-		return true
-	default:
-		return false
-	}
+	return simpleKinds.Has(k)
 }
 
-func maybeCopy(src reflect.Value, copyPrivate bool) reflect.Value {
+var (
+	empty any
+	zero  = reflect.Zero(reflect.TypeOf(&empty))
+)
+
+func maybeCopy(src, dst reflect.Value, copyPrivate bool) reflect.Value {
 	if src.Kind() == reflect.Invalid {
-		var a any = nil
-		return reflect.Zero(reflect.TypeOf(&a))
+		return zero
 	}
 	if src.IsZero() {
 		return src
@@ -209,12 +212,17 @@ func maybeCopy(src reflect.Value, copyPrivate bool) reflect.Value {
 		return nv
 
 	case reflect.Pointer, reflect.Array, reflect.Struct:
-		nv := reflect.New(src.Type()).Elem()
+		var nv reflect.Value
+		if !dst.IsValid() || dst.IsZero() {
+			nv = reflect.New(src.Type()).Elem()
+		} else {
+			nv = reflect.NewAt(src.Type(), unsafe.Pointer(dst.UnsafeAddr())).Elem()
+		}
 		reflectClone(nv, src, copyPrivate, true, false)
 		return nv
 
 	case reflect.Interface:
-		return maybeCopy(src.Elem(), copyPrivate)
+		return maybeCopy(src.Elem(), dst.Elem(), copyPrivate)
 
 	default:
 		return src
@@ -222,8 +230,7 @@ func maybeCopy(src reflect.Value, copyPrivate bool) reflect.Value {
 }
 
 func isCloner(t reflect.Type) int {
-	key := t.Name()
-	return cloneCache.MustGet(key, func() int {
+	return cloneCache.MustGet(t, func() int {
 		v := math.MaxInt
 		if idx := cloneIdx(t); idx != math.MaxInt {
 			v = idx + 1
