@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"go.oneofone.dev/genh/gsets"
@@ -65,7 +66,9 @@ type simpleStruct struct {
 func TestBug01(t *testing.T) {
 	s := bugSlice{cloneStruct{x: 42}, &cloneStruct{x: 42}}
 	c := Clone(s, true)
-	t.Log(c[0].XV(), c[1].XV())
+	if c[0].XV() != 42 || c[1].XV() != 42 {
+		t.Fatal("c[0].XV() != 42 || c[1].XV() != 42")
+	}
 }
 
 func TestBug02(t *testing.T) {
@@ -162,6 +165,44 @@ func TestClone(t *testing.T) {
 	}
 }
 
+func TestCloneWithPrivateFields(t *testing.T) {
+	type privateStruct struct {
+		Public  int
+		private string
+	}
+
+	original := privateStruct{
+		Public:  42,
+		private: "secret",
+	}
+
+	cloned := Clone(original, true)
+
+	if cloned.private != original.private {
+		t.Errorf("Clone with private fields failed: expected Public=%d, got %d", original.Public, cloned.Public)
+	}
+}
+
+func TestCloneNilPointer(t *testing.T) {
+	var original *int
+	cloned := Clone(original, true)
+
+	if cloned != nil {
+		t.Errorf("Clone failed for nil pointer: expected nil, got %+v", cloned)
+	}
+}
+
+func TestCloneEmptyStruct(t *testing.T) {
+	type EmptyStruct struct{}
+
+	original := EmptyStruct{}
+	cloned := Clone(original, true)
+
+	if !reflect.DeepEqual(original, cloned) {
+		t.Errorf("Clone failed for empty struct: expected %+v, got %+v", original, cloned)
+	}
+}
+
 func BenchmarkClone(b *testing.B) {
 	bp := &BrandProduct{
 		ReviewLinks: &BrandProductReviewLink{
@@ -183,7 +224,17 @@ func BenchmarkClone(b *testing.B) {
 	for i := range 1024 {
 		col := make([]*Collectible, 1024)
 		for x := range col {
-			col[x] = &Collectible{}
+			col[x] = &Collectible{
+				ID:         strconv.Itoa(x),
+				SrcID:      "",
+				URL:        "",
+				ProductID:  "",
+				BatchID:    "",
+				QR:         []byte{'a'},
+				Rating:     0,
+				RedeemedAt: 0,
+				Redeemed:   true,
+			}
 		}
 		bp.Batches[i] = &BrandProductBatch{
 			Collectibles: col,
